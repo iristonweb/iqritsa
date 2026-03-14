@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import GameButton from "../ui/GameButton";
 
 interface RavenMatrixProps {
@@ -7,107 +7,132 @@ interface RavenMatrixProps {
   disabled: boolean;
 }
 
+type Shape = 'circle' | 'square' | 'triangle' | 'diamond';
+type Color = '#00ffff' | '#8b5cf6' | '#00ff88' | '#ff3366';
+
+const MatrixCell = ({ shape, color, size = 30 }: { shape: Shape | '?'; color: Color | string; size?: number }) => {
+  if (shape === '?') {
+    return (
+      <div className="w-full h-full flex items-center justify-center rounded-sm"
+        style={{ background: 'rgba(0,255,255,0.05)', border: '2px dashed rgba(0,255,255,0.4)' }}>
+        <span className="text-xl font-black animate-neon-pulse" style={{ color: '#00ffff', textShadow: '0 0 10px #00ffff' }}>?</span>
+      </div>
+    );
+  }
+
+  const s = size;
+  return (
+    <div className="w-full h-full flex items-center justify-center rounded-sm"
+      style={{ background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.08)' }}>
+      <svg width={s} height={s} viewBox="0 0 40 40" fill="none">
+        {shape === 'circle' && (
+          <circle cx="20" cy="20" r="16" fill={color + '33'} stroke={color} strokeWidth="2"
+            style={{ filter: `drop-shadow(0 0 4px ${color})` }}/>
+        )}
+        {shape === 'square' && (
+          <rect x="6" y="6" width="28" height="28" rx="2" fill={color + '33'} stroke={color} strokeWidth="2"
+            style={{ filter: `drop-shadow(0 0 4px ${color})` }}/>
+        )}
+        {shape === 'triangle' && (
+          <polygon points="20,4 36,36 4,36" fill={color + '33'} stroke={color} strokeWidth="2"
+            style={{ filter: `drop-shadow(0 0 4px ${color})` }}/>
+        )}
+        {shape === 'diamond' && (
+          <polygon points="20,3 37,20 20,37 3,20" fill={color + '33'} stroke={color} strokeWidth="2"
+            style={{ filter: `drop-shadow(0 0 4px ${color})` }}/>
+        )}
+      </svg>
+    </div>
+  );
+};
+
 export default function RavenMatrix({ puzzle, onAnswer, disabled }: RavenMatrixProps) {
-  const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
+  const [selected, setSelected] = useState<number | null>(null);
 
-  // Generate a simple Raven's matrix pattern
-  const generateMatrix = () => {
-    // For demo purposes, create a 3x3 pattern with shapes
-    const shapes = ['○', '□', '△', '◇', '★', '♦', '●', '■', '▲'];
-    const matrix = [
-      [shapes[0], shapes[1], shapes[2]],
-      [shapes[3], shapes[4], shapes[5]],
-      [shapes[6], shapes[7], '?']
+  const SHAPES: Shape[] = ['circle', 'square', 'triangle', 'diamond'];
+  const COLORS: Color[] = ['#00ffff', '#8b5cf6', '#00ff88', '#ff3366'];
+
+  // Generate a 3x3 matrix puzzle
+  const [matrixData] = useState(() => {
+    const s = SHAPES[Math.floor(Math.random() * SHAPES.length)];
+    const c = COLORS[Math.floor(Math.random() * COLORS.length)];
+    const matrix: Array<{ shape: Shape | '?'; color: Color | string }> = [
+      { shape: SHAPES[0], color: COLORS[0] }, { shape: SHAPES[1], color: COLORS[1] }, { shape: SHAPES[2], color: COLORS[2] },
+      { shape: SHAPES[1], color: COLORS[2] }, { shape: SHAPES[2], color: COLORS[0] }, { shape: SHAPES[0], color: COLORS[1] },
+      { shape: SHAPES[2], color: COLORS[1] }, { shape: SHAPES[0], color: COLORS[2] }, { shape: '?', color: '' },
     ];
-    
-    // Generate 6 answer options
-    const options = [shapes[8], shapes[0], shapes[2], shapes[4], shapes[6], shapes[1]];
-    const correctIndex = 0; // shapes[8] is correct
-    
-    return { matrix, options, correctIndex };
-  };
-
-  const [matrixData] = useState(() => generateMatrix());
-
-  const handleAnswerSelect = (optionIndex: number) => {
-    if (!disabled) {
-      setSelectedAnswer(optionIndex);
-    }
-  };
+    const answer = { shape: SHAPES[1], color: COLORS[0] };
+    const options = [
+      answer,
+      { shape: SHAPES[0], color: COLORS[1] },
+      { shape: SHAPES[2], color: COLORS[2] },
+      { shape: SHAPES[1], color: COLORS[2] },
+    ];
+    return { matrix, answer, options, correctIndex: 0 };
+  });
 
   const handleSubmit = () => {
-    if (selectedAnswer !== null) {
-      onAnswer(selectedAnswer);
+    if (selected !== null) {
+      onAnswer(selected === matrixData.correctIndex ? matrixData.correctIndex : selected);
     }
   };
 
   return (
-    <div className="flex flex-col items-center h-full justify-center space-y-8">
-      <div className="text-center">
-        <h2 className="text-2xl font-bold text-gray-800 mb-2">Матрица Равена</h2>
-        <p className="text-gray-600">
-          Найдите закономерность и выберите недостающий элемент
-        </p>
+    <div className="space-y-6">
+      <div className="flex items-center gap-2">
+        <div className="w-1 h-4 rounded-sm" style={{ background: '#ffd700', boxShadow: '0 0 6px #ffd700' }}/>
+        <span className="text-xs font-bold tracking-widest" style={{ color: '#ffd700' }}>МАТРИЦА РАВЕНА</span>
       </div>
 
-      {/* Matrix Display */}
-      <div className="bg-white rounded-xl shadow-lg p-8">
-        <div className="grid grid-cols-3 gap-4 mb-8">
-          {matrixData.matrix.map((row, rowIndex) => 
-            row.map((cell, colIndex) => (
-              <div
-                key={`${rowIndex}-${colIndex}`}
-                className={`w-20 h-20 border-2 border-gray-300 rounded-lg flex items-center justify-center text-3xl ${
-                  cell === '?' ? 'bg-yellow-100 border-yellow-400' : 'bg-gray-50'
-                }`}
-              >
-                {cell}
-              </div>
-            ))
-          )}
-        </div>
+      <div className="text-xs text-center tracking-widest" style={{ color: 'rgba(255,255,255,0.3)' }}>
+        ОПРЕДЕЛИТЕ ПАТТЕРН И ВЫБЕРИТЕ НЕДОСТАЮЩИЙ ЭЛЕМЕНТ
       </div>
 
-      {/* Answer Options */}
-      <div className="bg-white rounded-xl shadow-lg p-6">
-        <h3 className="text-lg font-semibold text-center mb-4">Выберите правильный ответ:</h3>
-        
-        <div className="grid grid-cols-6 gap-3">
-          {matrixData.options.map((option, index) => (
-            <button
-              key={index}
-              className={`w-16 h-16 border-2 rounded-lg flex items-center justify-center text-2xl transition-all ${
-                selectedAnswer === index
-                  ? 'border-blue-500 bg-blue-100 shadow-lg transform scale-105'
-                  : 'border-gray-300 bg-gray-50 hover:border-blue-300 hover:bg-blue-50'
-              } ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
-              onClick={() => handleAnswerSelect(index)}
-              disabled={disabled}
-            >
-              {option}
-            </button>
+      {/* 3x3 Matrix */}
+      <div className="mx-auto" style={{ width: 'fit-content' }}>
+        <div className="grid grid-cols-3 gap-2 p-4 rounded-sm"
+          style={{ background: 'rgba(0,0,0,0.5)', border: '1px solid rgba(255,215,0,0.2)' }}>
+          {matrixData.matrix.map((cell, i) => (
+            <div key={i} style={{ width: '70px', height: '70px' }}>
+              <MatrixCell shape={cell.shape} color={cell.color} />
+            </div>
           ))}
         </div>
       </div>
 
-      {/* Submit Button */}
-      <GameButton
-        onClick={handleSubmit}
-        disabled={selectedAnswer === null || disabled}
-        size="lg"
-        className="px-8"
-      >
-        {disabled ? 'Обрабатывается...' : 'Ответить'}
-      </GameButton>
+      {/* Options */}
+      <div className="text-xs text-center tracking-widest" style={{ color: 'rgba(255,255,255,0.3)' }}>
+        ВАРИАНТЫ ОТВЕТОВ
+      </div>
+      <div className="grid grid-cols-4 gap-3">
+        {matrixData.options.map((opt, i) => (
+          <button
+            key={i}
+            onClick={() => !disabled && setSelected(i)}
+            disabled={disabled}
+            className="relative transition-all duration-200"
+            style={{
+              height: '70px',
+              background: selected === i ? 'rgba(255,215,0,0.1)' : 'rgba(0,0,0,0.4)',
+              border: `2px solid ${selected === i ? '#ffd700' : 'rgba(255,255,255,0.08)'}`,
+              borderRadius: '4px',
+              boxShadow: selected === i ? '0 0 15px rgba(255,215,0,0.3)' : 'none',
+              cursor: disabled ? 'not-allowed' : 'pointer',
+            }}>
+            <div className="absolute top-1 left-1 text-xs font-bold"
+              style={{ color: selected === i ? '#ffd700' : 'rgba(255,255,255,0.2)' }}>
+              {['A', 'B', 'C', 'D'][i]}
+            </div>
+            <MatrixCell shape={opt.shape} color={opt.color} size={25}/>
+          </button>
+        ))}
+      </div>
 
-      {/* Hint Display */}
-      {puzzle.hint && (
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 max-w-md text-center">
-          <div className="text-yellow-700">
-            💡 <strong>Подсказка:</strong> {puzzle.hint}
-          </div>
-        </div>
-      )}
+      <div className="flex justify-center">
+        <GameButton onClick={handleSubmit} disabled={selected === null || disabled} size="lg">
+          ПОДТВЕРДИТЬ
+        </GameButton>
+      </div>
     </div>
   );
 }

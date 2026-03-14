@@ -5,15 +5,18 @@
 @layer base {
   * {
     @apply border-border;
+    box-sizing: border-box;
   }
 
   body {
-    @apply font-sans antialiased bg-background text-foreground;
     margin: 0;
     padding: 0;
     overflow: hidden;
     width: 100vw;
     height: 100vh;
+    background: #050510;
+    color: #e0e8ff;
+    font-family: 'Inter', sans-serif;
   }
 }
 
@@ -27,4 +30,176 @@ canvas {
   width: 100% !important;
   height: 100% !important;
   touch-action: none;
+}
+
+/* ===== NEON GLOW UTILITIES ===== */
+.glow-cyan {
+  box-shadow: 0 0 10px #00ffff44, 0 0 20px #00ffff22, inset 0 0 10px #00ffff11;
+}
+.glow-purple {
+  box-shadow: 0 0 10px #8b5cf644, 0 0 20px #8b5cf622, inset 0 0 10px #8b5cf611;
+}
+.glow-green {
+  box-shadow: 0 0 10px #00ff8844, 0 0 20px #00ff8822, inset 0 0 10px #00ff8811;
+}
+.glow-gold {
+  box-shadow: 0 0 10px #ffd70044, 0 0 20px #ffd70022, inset 0 0 10px #ffd70011;
+}
+.text-glow-cyan {
+  text-shadow: 0 0 10px #00ffff, 0 0 20px #00ffff66;
+}
+.text-glow-purple {
+  text-shadow: 0 0 10px #a78bfa, 0 0 20px #a78bfa66;
+}
+.text-glow-green {
+  text-shadow: 0 0 10px #00ff88, 0 0 20px #00ff8866;
+}
+.text-glow-gold {
+  text-shadow: 0 0 10px #ffd700, 0 0 20px #ffd70066;
+}
+
+/* ===== NEON BORDER ===== */
+.border-neon-cyan {
+  border-color: #00ffff !important;
+  box-shadow: 0 0 8px #00ffff55, inset 0 0 8px #00ffff11;
+}
+.border-neon-purple {
+  border-color: #8b5cf6 !important;
+  box-shadow: 0 0 8px #8b5cf655, inset 0 0 8px #8b5cf611;
+}
+.border-neon-green {
+  border-color: #00ff88 !important;
+  box-shadow: 0 0 8px #00ff8855, inset 0 0 8px #00ff8811;
+}
+
+/* ===== GLASSMORPHISM ===== */
+.glass-dark {
+  background: rgba(10, 10, 30, 0.75);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(0, 255, 255, 0.12);
+}
+.glass-panel {
+  background: rgba(5, 5, 20, 0.85);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(139, 92, 246, 0.2);
+}
+
+/* ===== HOLOGRAPHIC GRADIENT ===== */
+.holo-border {
+  border: 1px solid transparent;
+  background: linear-gradient(#050510, #050510) padding-box,
+              linear-gradient(135deg, #00ffff, #8b5cf6, #00ff88, #00ffff) border-box;
+}
+
+/* ===== CIRCUIT GRID PATTERN ===== */
+.circuit-bg {
+  background-color: #050510;
+  background-image:
+    linear-gradient(rgba(0, 255, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 255, 255, 0.03) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+
+/* ===== ANIMATIONS ===== */
+@keyframes scan-line {
+  0% { transform: translateY(-100%); opacity: 0; }
+  50% { opacity: 0.6; }
+  100% { transform: translateY(200%); opacity: 0; }
+}
+@keyframes neon-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+}
+@keyframes spin-slow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+@keyframes glitch {
+  0% { transform: translate(0); }
+  20% { transform: translate(-2px, 1px); }
+  40% { transform: translate(2px, -1px); }
+  60% { transform: translate(-1px, 2px); }
+  80% { transform: translate(1px, -2px); }
+  100% { transform: translate(0); }
+}
+@keyframes data-flow {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+@keyframes neural-fire {
+  0% { opacity: 0.3; transform: scale(0.8); }
+  50% { opacity: 1; transform: scale(1.1); }
+  100% { opacity: 0.3; transform: scale(0.8); }
+}
+@keyframes progress-flow {
+  0% { background-position: 0% 50%; }
+  100% { background-position: 200% 50%; }
+}
+
+.animate-scan { animation: scan-line 3s linear infinite; }
+.animate-neon-pulse { animation: neon-pulse 2s ease-in-out infinite; }
+.animate-float { animation: float 4s ease-in-out infinite; }
+.animate-spin-slow { animation: spin-slow 8s linear infinite; }
+.animate-glitch { animation: glitch 0.3s ease-in-out; }
+.animate-neural-fire { animation: neural-fire 1.5s ease-in-out infinite; }
+
+/* ===== SCROLLBAR ===== */
+::-webkit-scrollbar {
+  width: 4px;
+}
+::-webkit-scrollbar-track {
+  background: #050510;
+}
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(#00ffff, #8b5cf6);
+  border-radius: 2px;
+}
+
+/* ===== FUTURISTIC INPUTS ===== */
+.neo-input {
+  background: rgba(0, 255, 255, 0.05) !important;
+  border: 1px solid rgba(0, 255, 255, 0.3) !important;
+  color: #00ffff !important;
+  font-family: 'Courier New', monospace !important;
+}
+.neo-input:focus {
+  border-color: #00ffff !important;
+  box-shadow: 0 0 15px rgba(0, 255, 255, 0.3) !important;
+  outline: none !important;
+}
+.neo-input::placeholder {
+  color: rgba(0, 255, 255, 0.3) !important;
+}
+
+/* ===== STAGE INDICATOR ===== */
+.stage-node {
+  position: relative;
+  transition: all 0.3s ease;
+}
+.stage-node::before {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: inherit;
+  padding: 2px;
+  background: linear-gradient(135deg, #00ffff, #8b5cf6);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: destination-out;
+  mask-composite: exclude;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+.stage-node.active::before {
+  opacity: 1;
 }

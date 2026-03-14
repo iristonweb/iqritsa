@@ -7,143 +7,96 @@ interface AnalogiesProps {
   disabled: boolean;
 }
 
+const ANALOGIES = [
+  { q: "Курица → яйцо, как дерево → ___?", opts: ["листу", "плоду", "корню", "ветке"], ans: "плоду", cat: "Биологические" },
+  { q: "Врач → больница, как учитель → ___?", opts: ["ученику", "школе", "книге", "доске"], ans: "школе", cat: "Профессии" },
+  { q: "Рука → палец, как нога → ___?", opts: ["колену", "ступне", "пальцу ноги", "голени"], ans: "пальцу ноги", cat: "Анатомия" },
+  { q: "Молоток → гвоздь, как отвёртка → ___?", opts: ["винту", "доске", "металлу", "рукоятке"], ans: "винту", cat: "Функции" },
+  { q: "Рассвет → закат, как начало → ___?", opts: ["утру", "концу", "дню", "вечеру"], ans: "концу", cat: "Антонимы" },
+  { q: "Книга → библиотека, как картина → ___?", opts: ["художнику", "музею", "раме", "холсту"], ans: "музею", cat: "Место хранения" },
+  { q: "Слово → предложение, как нота → ___?", opts: ["звуку", "мелодии", "скрипке", "паузе"], ans: "мелодии", cat: "Структура" },
+];
+
 export default function Analogies({ puzzle, onAnswer, disabled }: AnalogiesProps) {
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
-
-  // Generate analogy puzzles
-  const generateAnalogy = () => {
-    const analogies = [
-      {
-        question: "Курица относится к яйцу, как дерево к ___?",
-        options: ["листу", "плоду", "корню", "ветке"],
-        correct: "плоду",
-        explanation: "И курица несет яйца, и дерево дает плоды - это их продукты",
-        category: "Биологические аналогии"
-      },
-      {
-        question: "Врач относится к больнице, как учитель к ___?",
-        options: ["ученику", "школе", "книге", "доске"],
-        correct: "школе",
-        explanation: "И врач работает в больнице, и учитель работает в школе - место работы",
-        category: "Профессиональные аналогии"
-      },
-      {
-        question: "Рука относится к пальцу, как нога к ___?",
-        options: ["колену", "ступне", "пальцу ноги", "голени"],
-        correct: "пальцу ноги",
-        explanation: "Рука состоит из пальцев, нога тоже имеет пальцы",
-        category: "Анатомические аналогии"
-      },
-      {
-        question: "Молоток относится к гвоздю, как отвертка к ___?",
-        options: ["винту", "доске", "металлу", "рукоятке"],
-        correct: "винту",
-        explanation: "Молоток вбивает гвозди, отвертка закручивает винты - инструмент и его объект",
-        category: "Функциональные аналогии"
-      },
-      {
-        question: "Начало относится к концу, как рассвет к ___?",
-        options: ["утру", "закату", "дню", "вечеру"],
-        correct: "закату",
-        explanation: "Начало противоположно концу, рассвет противоположен закату",
-        category: "Противоположности"
-      }
-    ];
-    
-    return analogies[Math.floor(Math.random() * analogies.length)];
-  };
-
-  const [analogyData] = useState(() => generateAnalogy());
-
-  const handleAnswerSelect = (option: string) => {
-    if (!disabled) {
-      setSelectedAnswer(option);
+  const [data] = useState(() => {
+    if (puzzle?.question?.text && puzzle?.question?.options) {
+      return {
+        q: puzzle.question.text,
+        opts: puzzle.question.options,
+        ans: puzzle.question.options[puzzle.answer] || ANALOGIES[0].ans,
+        cat: "Аналогия"
+      };
     }
-  };
+    return ANALOGIES[Math.floor(Math.random() * ANALOGIES.length)];
+  });
+
+  const labels = ['A', 'B', 'C', 'D'];
 
   const handleSubmit = () => {
-    if (selectedAnswer) {
-      onAnswer(selectedAnswer);
-    }
+    if (selectedAnswer) onAnswer(selectedAnswer);
   };
 
   return (
-    <div className="flex flex-col items-center h-full justify-center space-y-8">
-      <div className="text-center">
-        <h2 className="text-2xl font-bold text-gray-800 mb-2">Аналогии</h2>
-        <p className="text-gray-600">
-          Найдите логическую связь между словами и выберите подходящий ответ
-        </p>
+    <div className="space-y-6">
+      {/* Category badge */}
+      <div className="flex items-center gap-2">
+        <div className="w-1 h-4 rounded-sm" style={{ background: '#9b59b6', boxShadow: '0 0 6px #9b59b6' }}/>
+        <span className="text-xs font-bold tracking-widest uppercase" style={{ color: '#9b59b6' }}>
+          {data.cat}
+        </span>
       </div>
 
-      {/* Category */}
-      <div className="bg-purple-50 border border-purple-200 rounded-lg p-3">
-        <div className="text-purple-700 font-medium">
-          {analogyData.category}
+      {/* Question */}
+      <div className="p-5 rounded-sm"
+        style={{
+          background: 'rgba(155,89,182,0.06)',
+          border: '1px solid rgba(155,89,182,0.3)',
+          boxShadow: '0 0 15px rgba(155,89,182,0.1)'
+        }}>
+        <div className="text-base font-medium text-center" style={{ color: '#e0e8ff', lineHeight: 1.6 }}>
+          {data.q}
         </div>
       </div>
 
-      {/* Analogy Question */}
-      <div className="bg-white rounded-xl shadow-lg p-8 max-w-2xl">
-        <div className="text-xl text-gray-800 text-center font-medium">
-          {analogyData.question}
-        </div>
-      </div>
-
-      {/* Answer Options */}
-      <div className="bg-white rounded-xl shadow-lg p-6 w-full max-w-md">
-        <h3 className="text-lg font-semibold text-center mb-6">
-          Выберите правильный ответ:
-        </h3>
-        
-        <div className="space-y-3">
-          {analogyData.options.map((option, index) => (
+      {/* Options grid */}
+      <div className="grid grid-cols-2 gap-3">
+        {data.opts.map((opt: string, i: number) => {
+          const isSelected = selectedAnswer === opt;
+          return (
             <button
-              key={index}
-              className={`w-full p-4 text-left border-2 rounded-lg transition-all ${
-                selectedAnswer === option
-                  ? 'border-blue-500 bg-blue-100 shadow-lg'
-                  : 'border-gray-300 bg-gray-50 hover:border-blue-300 hover:bg-blue-50'
-              } ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
-              onClick={() => handleAnswerSelect(option)}
+              key={i}
+              onClick={() => !disabled && setSelectedAnswer(opt)}
               disabled={disabled}
-            >
-              <div className="flex items-center">
-                <div className="w-8 h-8 border-2 border-gray-400 rounded-full flex items-center justify-center mr-3 text-sm font-bold">
-                  {String.fromCharCode(65 + index)}
+              className="p-4 rounded-sm text-left transition-all duration-200"
+              style={{
+                background: isSelected ? 'rgba(155,89,182,0.2)' : 'rgba(0,0,0,0.4)',
+                border: `1px solid ${isSelected ? '#9b59b6' : 'rgba(255,255,255,0.08)'}`,
+                boxShadow: isSelected ? '0 0 15px rgba(155,89,182,0.3)' : 'none',
+                cursor: disabled ? 'not-allowed' : 'pointer',
+                color: isSelected ? '#c084fc' : 'rgba(255,255,255,0.5)',
+              }}>
+              <div className="flex items-center gap-3">
+                <div className="w-6 h-6 rounded-sm flex items-center justify-center text-xs font-bold flex-shrink-0"
+                  style={{
+                    background: isSelected ? '#9b59b6' : 'rgba(255,255,255,0.06)',
+                    color: isSelected ? '#fff' : 'rgba(255,255,255,0.3)',
+                    border: `1px solid ${isSelected ? '#9b59b6' : 'rgba(255,255,255,0.1)'}`,
+                  }}>
+                  {labels[i]}
                 </div>
-                <div className="text-lg">{option}</div>
+                <span className="text-sm">{opt}</span>
               </div>
             </button>
-          ))}
-        </div>
+          );
+        })}
       </div>
 
-      {/* Submit Button */}
-      <GameButton
-        onClick={handleSubmit}
-        disabled={!selectedAnswer || disabled}
-        size="lg"
-        className="px-8"
-      >
-        {disabled ? 'Обрабатывается...' : 'Ответить'}
-      </GameButton>
-
-      {/* Hint Display */}
-      {puzzle.hint && (
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 max-w-md text-center">
-          <div className="text-yellow-700">
-            💡 <strong>Подсказка:</strong> {puzzle.hint}
-          </div>
-        </div>
-      )}
-
-      {/* Instructions */}
-      <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 max-w-lg text-center text-sm">
-        <div className="text-gray-700">
-          <strong>Как решать:</strong> Определите, какая связь существует между первой парой слов, 
-          затем найдите слово, которое имеет такую же связь с третьим словом.
-        </div>
+      {/* Submit */}
+      <div className="flex justify-center">
+        <GameButton onClick={handleSubmit} disabled={!selectedAnswer || disabled} size="lg" variant="secondary">
+          ПОДТВЕРДИТЬ ОТВЕТ
+        </GameButton>
       </div>
     </div>
   );

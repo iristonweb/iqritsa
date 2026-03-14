@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import GameButton from "../ui/GameButton";
 
 interface LogicSequenceProps {
@@ -7,140 +7,91 @@ interface LogicSequenceProps {
   disabled: boolean;
 }
 
+const SEQUENCES = [
+  { seq: [2, 4, 8, 16, "?"], ans: "32", hint: "Каждое число удваивается", label: "ГЕОМЕТРИЧЕСКИЙ РЯД" },
+  { seq: [1, 1, 2, 3, 5, 8, "?"], ans: "13", hint: "Числа Фибоначчи", label: "РЯД ФИБОНАЧЧИ" },
+  { seq: [3, 6, 12, 24, "?"], ans: "48", hint: "Умножение на 2", label: "ПРОГРЕССИЯ ×2" },
+  { seq: [100, 81, 64, 49, "?"], ans: "36", hint: "Убывающие квадраты", label: "КВАДРАТЫ ЧИСЕЛ" },
+  { seq: [1, 4, 9, 16, 25, "?"], ans: "36", hint: "Полные квадраты", label: "КВАДРАТНЫЙ РЯД" },
+  { seq: [5, 10, 20, 40, "?"], ans: "80", hint: "Каждое следующее вдвое больше", label: "СТЕПЕНИ ДВОЙКИ" },
+  { seq: [1, 3, 7, 15, "?"], ans: "31", hint: "Удвоить и прибавить 1", label: "×2 + 1" },
+];
+
 export default function LogicSequence({ puzzle, onAnswer, disabled }: LogicSequenceProps) {
   const [userAnswer, setUserAnswer] = useState("");
-
-  // Generate a logical sequence puzzle
-  const generateSequence = () => {
-    const sequences = [
-      {
-        sequence: [2, 4, 8, 16, "?"],
-        answer: "32",
-        explanation: "Каждое число удваивается",
-        type: "Числовая прогрессия"
-      },
-      {
-        sequence: [1, 1, 2, 3, 5, 8, "?"],
-        answer: "13",
-        explanation: "Числа Фибоначчи",
-        type: "Последовательность Фибоначчи"
-      },
-      {
-        sequence: ["А", "Б", "В", "Г", "?"],
-        answer: "Д",
-        explanation: "Буквы русского алфавита по порядку",
-        type: "Буквенная последовательность"
-      },
-      {
-        sequence: [3, 6, 12, 24, "?"],
-        answer: "48", 
-        explanation: "Каждое число удваивается",
-        type: "Геометрическая прогрессия"
-      },
-      {
-        sequence: [100, 81, 64, 49, 36, 25, "?"],
-        answer: "16",
-        explanation: "Квадраты чисел от 10 до 4",
-        type: "Квадраты чисел"
-      }
-    ];
-    
-    return sequences[Math.floor(Math.random() * sequences.length)];
-  };
-
-  const [sequenceData] = useState(() => generateSequence());
+  const [data] = useState(() => SEQUENCES[Math.floor(Math.random() * SEQUENCES.length)]);
 
   const handleSubmit = () => {
-    if (userAnswer.trim()) {
-      onAnswer(userAnswer.trim());
-    }
+    if (userAnswer.trim()) onAnswer(userAnswer.trim());
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && userAnswer.trim() && !disabled) {
-      handleSubmit();
-    }
+  const handleKey = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && userAnswer.trim() && !disabled) handleSubmit();
   };
 
   return (
-    <div className="flex flex-col items-center h-full justify-center space-y-8">
-      <div className="text-center">
-        <h2 className="text-2xl font-bold text-gray-800 mb-2">Логическая Последовательность</h2>
-        <p className="text-gray-600">
-          Найдите закономерность и продолжите последовательность
-        </p>
+    <div className="space-y-6">
+      {/* Label */}
+      <div className="flex items-center gap-2">
+        <div className="w-1 h-4 rounded-sm" style={{ background: '#4a9eff', boxShadow: '0 0 6px #4a9eff' }}/>
+        <span className="text-xs font-bold tracking-widest" style={{ color: '#4a9eff' }}>{data.label}</span>
       </div>
 
-      {/* Sequence Type */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-        <div className="text-blue-700 font-medium">
-          {sequenceData.type}
-        </div>
-      </div>
-
-      {/* Sequence Display */}
-      <div className="bg-white rounded-xl shadow-lg p-8">
-        <div className="flex items-center justify-center space-x-4">
-          {sequenceData.sequence.map((item, index) => (
-            <div key={index} className="flex items-center">
-              <div 
-                className={`w-16 h-16 border-2 rounded-lg flex items-center justify-center text-xl font-bold ${
-                  item === "?" 
-                    ? 'border-red-400 bg-red-50 text-red-600' 
-                    : 'border-blue-300 bg-blue-50 text-blue-700'
-                }`}
-              >
-                {item}
+      {/* Sequence display */}
+      <div className="p-5 rounded-sm text-center"
+        style={{
+          background: 'rgba(74,158,255,0.05)',
+          border: '1px solid rgba(74,158,255,0.25)',
+          boxShadow: '0 0 20px rgba(74,158,255,0.08)'
+        }}>
+        <div className="flex items-center justify-center gap-3 flex-wrap">
+          {data.seq.map((item, i) => (
+            <div key={i} className="flex items-center gap-3">
+              <div className={`rounded-sm px-4 py-3 text-xl font-black font-mono text-center min-w-[60px] transition-all duration-200`}
+                style={{
+                  background: item === '?' ? 'rgba(0,255,255,0.1)' : 'rgba(74,158,255,0.1)',
+                  border: `1px solid ${item === '?' ? '#00ffff' : 'rgba(74,158,255,0.4)'}`,
+                  color: item === '?' ? '#00ffff' : '#4a9eff',
+                  boxShadow: item === '?' ? '0 0 15px rgba(0,255,255,0.3)' : '0 0 8px rgba(74,158,255,0.2)',
+                  animation: item === '?' ? 'neon-pulse 1.5s ease-in-out infinite' : 'none'
+                }}>
+                {item === '?' ? '?' : item}
               </div>
-              
-              {index < sequenceData.sequence.length - 1 && (
-                <div className="mx-2 text-gray-400 text-2xl">→</div>
+              {i < data.seq.length - 1 && (
+                <div className="text-sm" style={{ color: 'rgba(74,158,255,0.3)' }}>→</div>
               )}
             </div>
           ))}
         </div>
       </div>
 
-      {/* Answer Input */}
-      <div className="bg-white rounded-xl shadow-lg p-6 w-full max-w-md">
-        <h3 className="text-lg font-semibold text-center mb-4">
-          Что идет дальше?
-        </h3>
-        
-        <div className="space-y-4">
-          <input
-            type="text"
-            value={userAnswer}
-            onChange={(e) => setUserAnswer(e.target.value)}
-            onKeyPress={handleKeyPress}
-            placeholder="Введите ответ..."
-            className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg text-center text-xl font-bold focus:border-blue-500 focus:outline-none"
-            disabled={disabled}
-          />
-          
-          <GameButton
-            onClick={handleSubmit}
-            disabled={!userAnswer.trim() || disabled}
-            className="w-full"
-            size="lg"
-          >
-            {disabled ? 'Обрабатывается...' : 'Ответить'}
-          </GameButton>
+      {/* Input */}
+      <div className="flex flex-col items-center gap-4">
+        <div className="text-xs tracking-widest" style={{ color: 'rgba(0,255,255,0.5)' }}>
+          ВВЕДИТЕ СЛЕДУЮЩИЙ ЭЛЕМЕНТ РЯДА
         </div>
+        <input
+          type="text"
+          value={userAnswer}
+          onChange={(e) => setUserAnswer(e.target.value)}
+          onKeyDown={handleKey}
+          disabled={disabled}
+          placeholder="?"
+          className="neo-input text-center text-2xl font-black font-mono rounded-sm"
+          style={{
+            width: '120px',
+            height: '60px',
+            padding: '0',
+            fontSize: '24px'
+          }}
+        />
       </div>
 
-      {/* Hint Display */}
-      {puzzle.hint && (
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 max-w-md text-center">
-          <div className="text-yellow-700">
-            💡 <strong>Подсказка:</strong> {puzzle.hint}
-          </div>
-        </div>
-      )}
-
-      {/* Example explanation for context */}
-      <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 max-w-md text-center text-sm text-gray-600">
-        <strong>Подсказка:</strong> Ищите математическую или логическую закономерность между соседними элементами
+      {/* Submit */}
+      <div className="flex justify-center">
+        <GameButton onClick={handleSubmit} disabled={!userAnswer.trim() || disabled} size="lg">
+          ВЫЧИСЛИТЬ
+        </GameButton>
       </div>
     </div>
   );

@@ -5,7 +5,7 @@ interface GameButtonProps {
   children: ReactNode;
   onClick?: () => void;
   disabled?: boolean;
-  variant?: 'default' | 'secondary' | 'danger' | 'success';
+  variant?: 'default' | 'secondary' | 'danger' | 'success' | 'ghost';
   size?: 'sm' | 'md' | 'lg';
   className?: string;
 }
@@ -18,56 +18,74 @@ export default function GameButton({
   size = 'md',
   className = ''
 }: GameButtonProps) {
-  
-  const getVariantStyles = (variant: string) => {
-    switch (variant) {
-      case 'default':
-        return disabled 
-          ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-          : 'bg-gradient-to-r from-blue-500 to-purple-600 text-white hover:from-blue-600 hover:to-purple-700 shadow-lg hover:shadow-xl';
-      case 'secondary':
-        return disabled
-          ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
-          : 'bg-white border-2 border-gray-300 text-gray-700 hover:border-blue-400 hover:text-blue-600 hover:bg-blue-50';
-      case 'danger':
-        return disabled
-          ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-          : 'bg-gradient-to-r from-red-500 to-red-600 text-white hover:from-red-600 hover:to-red-700 shadow-lg hover:shadow-xl';
-      case 'success':
-        return disabled
-          ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-          : 'bg-gradient-to-r from-green-500 to-green-600 text-white hover:from-green-600 hover:to-green-700 shadow-lg hover:shadow-xl';
-      default:
-        return '';
-    }
+
+  const base = `
+    relative inline-flex items-center justify-center font-semibold
+    rounded-lg transition-all duration-200 transform
+    focus:outline-none select-none overflow-hidden
+    tracking-wider uppercase text-xs
+  `;
+
+  const variants = {
+    default: disabled
+      ? 'bg-gray-800 text-gray-600 border border-gray-700 cursor-not-allowed'
+      : `
+        bg-transparent border border-cyan-400 text-cyan-400
+        hover:bg-cyan-400 hover:text-black hover:shadow-[0_0_20px_rgba(0,255,255,0.6)]
+        active:scale-95
+        before:absolute before:inset-0 before:bg-cyan-400 before:opacity-0 before:transition-opacity
+        hover:before:opacity-10
+      `,
+    secondary: disabled
+      ? 'bg-gray-800 text-gray-600 border border-gray-700 cursor-not-allowed'
+      : `
+        bg-transparent border border-purple-500 text-purple-400
+        hover:bg-purple-500 hover:text-white hover:shadow-[0_0_20px_rgba(139,92,246,0.6)]
+        active:scale-95
+      `,
+    success: disabled
+      ? 'bg-gray-800 text-gray-600 border border-gray-700 cursor-not-allowed'
+      : `
+        bg-transparent border border-green-400 text-green-400
+        hover:bg-green-400 hover:text-black hover:shadow-[0_0_20px_rgba(0,255,136,0.6)]
+        active:scale-95
+      `,
+    danger: disabled
+      ? 'bg-gray-800 text-gray-600 border border-gray-700 cursor-not-allowed'
+      : `
+        bg-transparent border border-red-500 text-red-400
+        hover:bg-red-500 hover:text-white hover:shadow-[0_0_20px_rgba(255,51,102,0.6)]
+        active:scale-95
+      `,
+    ghost: disabled
+      ? 'text-gray-600 cursor-not-allowed'
+      : `
+        bg-transparent text-gray-400
+        hover:text-cyan-400 hover:bg-cyan-400/10
+        active:scale-95
+      `,
   };
 
-  const getSizeStyles = (size: string) => {
-    switch (size) {
-      case 'sm':
-        return 'px-3 py-2 text-sm';
-      case 'md':
-        return 'px-4 py-3 text-base';
-      case 'lg':
-        return 'px-6 py-4 text-lg';
-      default:
-        return 'px-4 py-3 text-base';
-    }
+  const sizes = {
+    sm: 'px-3 py-1.5 text-xs',
+    md: 'px-5 py-2.5 text-xs',
+    lg: 'px-8 py-3.5 text-sm',
   };
 
   return (
     <button
       onClick={onClick}
       disabled={disabled}
-      className={cn(
-        'font-semibold rounded-lg transition-all duration-200 transform active:scale-95 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-opacity-50',
-        getVariantStyles(variant),
-        getSizeStyles(size),
-        !disabled && 'hover:scale-105',
-        className
-      )}
+      className={cn(base, variants[variant], sizes[size], className)}
     >
-      {children}
+      {/* Glitch lines on hover (only for default) */}
+      {!disabled && variant === 'default' && (
+        <>
+          <span className="absolute top-0 left-0 w-0 h-px bg-cyan-400 transition-all duration-300 group-hover:w-full" />
+          <span className="absolute bottom-0 right-0 w-0 h-px bg-cyan-400 transition-all duration-300 group-hover:w-full" />
+        </>
+      )}
+      <span className="relative z-10">{children}</span>
     </button>
   );
 }

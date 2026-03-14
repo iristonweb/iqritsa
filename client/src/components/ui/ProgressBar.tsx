@@ -1,73 +1,68 @@
 import { useEffect, useState } from "react";
 
 interface ProgressBarProps {
-  progress: number; // 0 to 1
+  progress: number;
   color?: string;
   height?: number;
   animated?: boolean;
   showPercentage?: boolean;
+  glowColor?: string;
 }
 
 export default function ProgressBar({
   progress,
-  color = "#3B82F6",
-  height = 8,
+  color = "#00ffff",
+  height = 6,
   animated = true,
-  showPercentage = false
+  showPercentage = false,
+  glowColor
 }: ProgressBarProps) {
   const [animatedProgress, setAnimatedProgress] = useState(0);
 
   useEffect(() => {
-    if (animated) {
-      const timer = setTimeout(() => {
-        setAnimatedProgress(progress);
-      }, 100);
-      return () => clearTimeout(timer);
-    } else {
-      setAnimatedProgress(progress);
-    }
-  }, [progress, animated]);
+    const timer = setTimeout(() => setAnimatedProgress(progress), 100);
+    return () => clearTimeout(timer);
+  }, [progress]);
 
-  const percentage = Math.round(progress * 100);
+  const percentage = Math.round(animatedProgress * 100);
+  const glow = glowColor || color;
 
   return (
     <div className="w-full">
-      <div 
-        className="w-full bg-gray-200 rounded-full overflow-hidden"
-        style={{ height: `${height}px` }}
+      <div
+        className="w-full rounded-sm relative overflow-hidden"
+        style={{ height: `${height}px`, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.05)' }}
       >
-        <div
-          className={`h-full rounded-full transition-all duration-500 ease-out ${
-            animated ? 'transform-gpu' : ''
-          }`}
+        {/* Background grid pattern */}
+        <div className="absolute inset-0"
           style={{
-            width: `${animatedProgress * 100}%`,
-            backgroundColor: color,
-            backgroundImage: animated 
-              ? `linear-gradient(45deg, rgba(255,255,255,0.2) 25%, transparent 25%, transparent 50%, rgba(255,255,255,0.2) 50%, rgba(255,255,255,0.2) 75%, transparent 75%, transparent)`
-              : undefined,
-            backgroundSize: animated ? '30px 30px' : undefined,
-            animation: animated ? 'progress-stripe 1s linear infinite' : undefined
+            backgroundImage: `repeating-linear-gradient(90deg, ${glow}11 0px, ${glow}11 1px, transparent 1px, transparent 10px)`,
+          }} />
+
+        {/* Progress fill */}
+        <div
+          className="h-full rounded-sm transition-all duration-700 ease-out relative"
+          style={{
+            width: `${percentage}%`,
+            background: `linear-gradient(90deg, ${color}88, ${color}, ${color}cc)`,
+            boxShadow: `0 0 8px ${glow}, 0 0 16px ${glow}44`,
           }}
-        />
+        >
+          {/* Shimmer effect */}
+          <div className="absolute inset-0 rounded-sm"
+            style={{
+              background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.3) 50%, transparent 100%)',
+              animation: 'progress-flow 2s linear infinite',
+              backgroundSize: '200% 100%'
+            }} />
+        </div>
       </div>
-      
+
       {showPercentage && (
-        <div className="text-center text-sm text-gray-600 mt-1">
+        <div className="text-right text-xs mt-1" style={{ color, textShadow: `0 0 6px ${glow}` }}>
           {percentage}%
         </div>
       )}
-      
-      <style jsx>{`
-        @keyframes progress-stripe {
-          from {
-            background-position: 30px 0;
-          }
-          to {
-            background-position: 0 0;
-          }
-        }
-      `}</style>
     </div>
   );
 }

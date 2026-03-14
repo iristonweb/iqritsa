@@ -1,169 +1,121 @@
 import { useChicken } from "../../lib/stores/useChicken";
 import { useIQGame } from "../../lib/stores/useIQGame";
 import { usePuzzles } from "../../lib/stores/usePuzzles";
-import GameButton from "../ui/GameButton";
+
+const STAGES = [
+  { name: "ЗЁРНЫШКИ", desc: "Базовая логика и последовательности", color: '#ffd700', diff: "I" },
+  { name: "ЦЫПЛЯЧЬЯ ТРОПА", desc: "Матрицы Равена, аналогии", color: '#c0c0c0', diff: "II" },
+  { name: "ГНЕЗДО МУДРОСТИ", desc: "Математика, пространство", color: '#4a9eff', diff: "III" },
+  { name: "КУРИНЫЙ УНИ", desc: "Сложные матрицы, загадки", color: '#9b59b6', diff: "IV" },
+  { name: "ФАКУЛЬТЕТ ЛОГИКИ", desc: "Числа, криптарифмы", color: '#1abc9c', diff: "V" },
+  { name: "ЛАБОРАТОРИЯ ГЕНИЯ", desc: "Вероятность, теория игр", color: '#e74c3c', diff: "VI" },
+  { name: "КОСМОС ИНТЕЛЛЕКТ", desc: "Задачи уровня MENSA", color: '#00d4ff', diff: "VII" },
+  { name: "АБС. РАЗУМ", desc: "Предел человеческого IQ", color: '#ff00ff', diff: "VIII" },
+];
 
 export default function StageSelection() {
   const { chickenStage, unlockedStages } = useChicken();
   const { setGameState } = useIQGame();
   const { setCurrentStage } = usePuzzles();
 
-  const stageData = [
-    {
-      name: "Зёрнышки",
-      description: "Простые логические задачки для разминки",
-      icon: "🌾",
-      difficulty: "Очень легко",
-      color: "bg-yellow-100 border-yellow-300 text-yellow-800"
-    },
-    {
-      name: "Цыплячья Тропа", 
-      description: "Матрицы Равена и простые аналогии",
-      icon: "🐣",
-      difficulty: "Легко",
-      color: "bg-green-100 border-green-300 text-green-800"
-    },
-    {
-      name: "Гнездо Мудрости",
-      description: "Математические задачи и пространственное мышление",
-      icon: "🏠",
-      difficulty: "Средне",
-      color: "bg-blue-100 border-blue-300 text-blue-800"
-    },
-    {
-      name: "Куриный Университет",
-      description: "Сложные матрицы и логические загадки",
-      icon: "🎓",
-      difficulty: "Сложно",
-      color: "bg-purple-100 border-purple-300 text-purple-800"
-    },
-    {
-      name: "Факультет Логики",
-      description: "Числовые ряды и криптарифмы",
-      icon: "🧮",
-      difficulty: "Очень сложно",
-      color: "bg-indigo-100 border-indigo-300 text-indigo-800"
-    },
-    {
-      name: "Лаборатория Гения",
-      description: "Вероятность и теория игр",
-      icon: "🔬",
-      difficulty: "Экстремально",
-      color: "bg-pink-100 border-pink-300 text-pink-800"
-    },
-    {
-      name: "Космический Интеллект",
-      description: "Задачи уровня MENSA",
-      icon: "🚀",
-      difficulty: "Гениальный",
-      color: "bg-cyan-100 border-cyan-300 text-cyan-800"
-    },
-    {
-      name: "Абсолютный Разум",
-      description: "Самые сложные задачи человечества",
-      icon: "🧠",
-      difficulty: "Богоподобный",
-      color: "bg-gradient-to-r from-purple-100 to-pink-100 border-purple-400 text-purple-900"
-    }
-  ];
-
-  const handleStageSelect = (stageIndex: number) => {
-    if (stageIndex <= unlockedStages) {
-      setCurrentStage(stageIndex);
+  const handleSelect = (index: number) => {
+    if (index <= unlockedStages) {
+      setCurrentStage(index);
       setGameState('puzzle');
     }
   };
 
   return (
-    <div className="space-y-3">
-      <h3 className="text-lg font-semibold text-gray-800 mb-4">Выберите этап обучения</h3>
-      
-      <div className="space-y-2 max-h-96 overflow-y-auto">
-        {stageData.map((stage, index) => {
-          const isUnlocked = index <= unlockedStages;
-          const isCurrent = index === chickenStage;
-          const isCompleted = index < chickenStage;
-          
-          return (
-            <div
-              key={index}
-              className={`relative p-3 rounded-lg border-2 cursor-pointer transition-all ${
-                isUnlocked 
-                  ? stage.color + (isCurrent ? ' ring-2 ring-offset-2 ring-blue-500' : '') 
-                  : 'bg-gray-100 border-gray-300 text-gray-400 cursor-not-allowed'
-              }`}
-              onClick={() => handleStageSelect(index)}
-            >
-              {/* Lock icon for locked stages */}
-              {!isUnlocked && (
-                <div className="absolute top-2 right-2">
-                  🔒
-                </div>
-              )}
-              
-              {/* Completion checkmark */}
-              {isCompleted && (
-                <div className="absolute top-2 right-2 text-green-500">
-                  ✅
-                </div>
-              )}
-              
-              {/* Current stage indicator */}
-              {isCurrent && (
-                <div className="absolute top-2 right-2 text-blue-500">
-                  ▶️
-                </div>
-              )}
+    <div className="space-y-1.5">
+      {STAGES.map((stage, index) => {
+        const isUnlocked = index <= unlockedStages;
+        const isCurrent = index === chickenStage;
+        const isCompleted = index < chickenStage;
 
-              <div className="flex items-start space-x-3">
-                <div className="text-2xl">{stage.icon}</div>
-                
-                <div className="flex-1">
-                  <div className="font-semibold text-sm">
-                    {index + 1}. {stage.name}
-                  </div>
-                  
-                  <div className="text-xs mt-1 opacity-80">
-                    {stage.description}
-                  </div>
-                  
-                  <div className="flex items-center justify-between mt-2">
-                    <span className="text-xs font-medium">
-                      {stage.difficulty}
-                    </span>
-                    
-                    {isUnlocked && (
-                      <GameButton
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleStageSelect(index);
-                        }}
-                        size="sm"
-                        variant={isCurrent ? "default" : "secondary"}
-                      >
-                        {isCurrent ? "Продолжить" : isCompleted ? "Повторить" : "Начать"}
-                      </GameButton>
-                    )}
-                  </div>
+        return (
+          <button
+            key={index}
+            onClick={() => handleSelect(index)}
+            disabled={!isUnlocked}
+            className="w-full text-left rounded-sm transition-all duration-200"
+            style={{
+              background: isCurrent
+                ? `linear-gradient(90deg, ${stage.color}18, rgba(0,0,0,0.4))`
+                : isCompleted
+                ? 'rgba(0,255,136,0.04)'
+                : isUnlocked
+                ? 'rgba(0,0,0,0.3)'
+                : 'rgba(0,0,0,0.15)',
+              border: `1px solid ${
+                isCurrent ? stage.color + 'aa' :
+                isCompleted ? '#00ff8833' :
+                isUnlocked ? 'rgba(255,255,255,0.08)' :
+                'rgba(255,255,255,0.04)'
+              }`,
+              boxShadow: isCurrent ? `0 0 12px ${stage.color}33` : 'none',
+              cursor: isUnlocked ? 'pointer' : 'not-allowed',
+              padding: '6px 8px',
+            }}
+          >
+            <div className="flex items-center gap-2">
+              {/* Stage number badge */}
+              <div className="w-6 h-6 rounded-sm flex items-center justify-center flex-shrink-0 text-xs font-black"
+                style={{
+                  background: isLocked(isUnlocked)
+                    ? 'rgba(255,255,255,0.04)'
+                    : isCompleted
+                    ? 'rgba(0,255,136,0.15)'
+                    : isCurrent
+                    ? stage.color + '22'
+                    : 'rgba(255,255,255,0.06)',
+                  color: isLocked(isUnlocked)
+                    ? 'rgba(255,255,255,0.15)'
+                    : isCompleted ? '#00ff88'
+                    : stage.color,
+                  border: `1px solid ${
+                    isLocked(isUnlocked) ? 'transparent' :
+                    isCompleted ? '#00ff8844' :
+                    stage.color + '66'
+                  }`
+                }}>
+                {isCompleted ? '✓' : isLocked(isUnlocked) ? '⊘' : stage.diff}
+              </div>
+
+              {/* Stage info */}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold truncate"
+                    style={{
+                      color: isLocked(isUnlocked) ? 'rgba(255,255,255,0.15)' :
+                             isCurrent ? stage.color :
+                             isCompleted ? 'rgba(0,255,136,0.7)' :
+                             'rgba(255,255,255,0.5)',
+                      textShadow: isCurrent ? `0 0 6px ${stage.color}` : 'none'
+                    }}>
+                    {stage.name}
+                  </span>
+                  {isCurrent && (
+                    <span className="text-xs ml-1 flex-shrink-0 animate-neon-pulse"
+                      style={{ color: stage.color }}>▶</span>
+                  )}
+                </div>
+                <div className="text-xs truncate mt-0.5"
+                  style={{
+                    color: isLocked(isUnlocked) ? 'rgba(255,255,255,0.08)' :
+                           'rgba(255,255,255,0.25)',
+                    fontSize: '10px'
+                  }}>
+                  {isLocked(isUnlocked) ? '[ ЗАБЛОКИРОВАНО ]' : stage.desc}
                 </div>
               </div>
             </div>
-          );
-        })}
-      </div>
-      
-      {/* Progress indicator */}
-      <div className="mt-4 p-3 bg-gray-50 rounded-lg">
-        <div className="text-xs text-gray-600 mb-1">
-          Прогресс: {chickenStage + 1} из {stageData.length} этапов
-        </div>
-        <div className="w-full bg-gray-200 rounded-full h-2">
-          <div 
-            className="bg-blue-500 h-2 rounded-full transition-all duration-300"
-            style={{ width: `${((chickenStage + 1) / stageData.length) * 100}%` }}
-          />
-        </div>
-      </div>
+          </button>
+        );
+      })}
     </div>
   );
+}
+
+function isLocked(isUnlocked: boolean) {
+  return !isUnlocked;
 }
