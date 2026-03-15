@@ -6,7 +6,7 @@ import { ACHIEVEMENTS } from "../achievements";
 
 export type ChickenMood = 'neutral' | 'happy' | 'thinking' | 'confused' | 'excited';
 
-interface ChickenState {
+export interface ChickenState {
   // Core progression
   chickenStage: number; // 0-7 representing the 8 stages
   currentStageProgress: number; // 0-1 progress in current stage

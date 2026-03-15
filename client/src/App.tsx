@@ -2,8 +2,11 @@ import { useEffect, useRef } from "react";
 import "@fontsource/inter";
 import GameHub from "./components/game/GameHub";
 import PuzzleArea from "./components/game/PuzzleArea";
+import AchievementToast from "./components/ui/AchievementToast";
 import { useIQGame } from "./lib/stores/useIQGame";
 import { useGameAudio } from "./hooks/useGameAudio";
+import { useChicken } from "./lib/stores/useChicken";
+import { usePuzzles } from "./lib/stores/usePuzzles";
 import "./index.css";
 
 function ParticleField() {
@@ -40,7 +43,6 @@ function ParticleField() {
     const draw = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      // Draw connections
       for (let i = 0; i < particles.length; i++) {
         for (let j = i + 1; j < particles.length; j++) {
           const dx = particles[i].x - particles[j].x;
@@ -57,13 +59,11 @@ function ParticleField() {
         }
       }
 
-      // Draw particles
       particles.forEach(p => {
         ctx.beginPath();
         ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
         ctx.fillStyle = p.color + Math.floor(p.opacity * 255).toString(16).padStart(2, '0');
         ctx.fill();
-
         p.x += p.vx;
         p.y += p.vy;
         if (p.x < 0 || p.x > canvas.width) p.vx *= -1;
@@ -98,12 +98,49 @@ function ParticleField() {
 
 function App() {
   const { gameState, initializeGame } = useIQGame();
-  const { initializeAudio } = useGameAudio();
+  const { initializeAudio, playBackgroundMusic } = useGameAudio();
+  const { loadFromStorage } = useChicken();
+  const { loadProgress } = usePuzzles();
+
+  const audioUnlocked = useRef(false);
 
   useEffect(() => {
+    // Load saved progress FIRST
+    loadFromStorage();
+    loadProgress();
+
+    // Initialize game state
     initializeGame();
+
+    // Initialize audio system (pre-load sounds)
     initializeAudio();
-  }, [initializeGame, initializeAudio]);
+
+    // Track "returning player" for achievement
+    const today = new Date().toDateString();
+    const lastPlayed = localStorage.getItem('last-played-date');
+    if (lastPlayed !== today) {
+      localStorage.setItem('last-played-date', today);
+    }
+  }, []);
+
+  // Unlock audio on first user interaction (browser autoplay policy)
+  useEffect(() => {
+    const unlock = () => {
+      if (audioUnlocked.current) return;
+      audioUnlocked.current = true;
+      playBackgroundMusic('background');
+      document.removeEventListener('click', unlock);
+      document.removeEventListener('keydown', unlock);
+    };
+
+    document.addEventListener('click', unlock);
+    document.addEventListener('keydown', unlock);
+
+    return () => {
+      document.removeEventListener('click', unlock);
+      document.removeEventListener('keydown', unlock);
+    };
+  }, [playBackgroundMusic]);
 
   return (
     <div className="w-screen h-screen circuit-bg overflow-hidden relative"
@@ -143,6 +180,11 @@ function App() {
       <div className="relative w-full h-full" style={{ zIndex: 10 }}>
         {gameState === 'hub' && <GameHub />}
         {gameState === 'puzzle' && <PuzzleArea />}
+      </div>
+
+      {/* Achievement notifications (above everything) */}
+      <div style={{ zIndex: 100 }}>
+        <AchievementToast />
       </div>
     </div>
   );

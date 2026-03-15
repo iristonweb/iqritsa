@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useIQGame } from "../../lib/stores/useIQGame";
 import { usePuzzles } from "../../lib/stores/usePuzzles";
 import { useChicken } from "../../lib/stores/useChicken";
@@ -8,7 +8,6 @@ import GameButton from "../ui/GameButton";
 import GameModal from "../ui/GameModal";
 import ChickenCharacter from "./ChickenCharacter";
 
-// Import puzzle components
 import RavenMatrix from "../puzzles/RavenMatrix";
 import LogicSequence from "../puzzles/LogicSequence";
 import MathProblem from "../puzzles/MathProblem";
@@ -36,6 +35,7 @@ export default function PuzzleArea() {
   const {
     currentPuzzle,
     currentStage,
+    sessionStats,
     hints,
     isComplete,
     nextPuzzle,
@@ -43,7 +43,7 @@ export default function PuzzleArea() {
     useHint,
     skipPuzzle
   } = usePuzzles();
-  const { setMood, addNeurons, chickenStage } = useChicken();
+  const { setMood, addNeurons, solvePuzzle, chickenStage, upgrades } = useChicken();
   const { playSuccess, playError } = useGameAudio();
 
   const [timeLeft, setTimeLeft] = useState(120);
@@ -52,13 +52,15 @@ export default function PuzzleArea() {
   const [showSkipConfirm, setShowSkipConfirm] = useState(false);
   const [earnedNeurons, setEarnedNeurons] = useState(0);
   const [hint, setHint] = useState<string | null>(null);
+  const [answeredAt, setAnsweredAt] = useState<number>(Date.now());
 
+  const puzzleStartTime = useRef<number>(Date.now());
   const stageColor = STAGE_COLORS[Math.min(currentStage, STAGE_COLORS.length - 1)];
 
   // Timer countdown
   useEffect(() => {
     if (timeLeft > 0 && !isComplete && !showResult) {
-      const timer = setTimeout(() => setTimeLeft(timeLeft - 1), 1000);
+      const timer = setTimeout(() => setTimeLeft(t => t - 1), 1000);
       return () => clearTimeout(timer);
     } else if (timeLeft === 0 && !showResult) {
       handleTimeOut();
@@ -68,16 +70,34 @@ export default function PuzzleArea() {
   // Reset timer on new puzzle
   useEffect(() => {
     if (currentPuzzle) {
-      setTimeLeft(currentPuzzle.timeLimit || 120);
+      // Apply timeBonus upgrade (each level = +20%)
+      const baseTime = currentPuzzle.timeLimit || 120;
+      const bonusMultiplier = 1 + (upgrades.timeBonus * 0.2);
+      const finalTime = Math.round(baseTime * bonusMultiplier);
+      setTimeLeft(finalTime);
       setShowResult(false);
       setLastResult(null);
       setHint(null);
       setMood('thinking');
+      puzzleStartTime.current = Date.now();
     }
   }, [currentPuzzle?.id]);
 
+  // When stage completes — go back to hub after short delay
+  useEffect(() => {
+    if (isComplete) {
+      setMood('excited');
+      const t = setTimeout(() => setGameState('hub'), 2500);
+      return () => clearTimeout(t);
+    }
+  }, [isComplete]);
+
   const handleAnswer = async (answer: any) => {
     if (showResult) return;
+
+    const timeSpent = (Date.now() - puzzleStartTime.current) / 1000; // seconds
+    const hintsUsedThisPuzzle = (currentPuzzle?.hint ? 1 : 0);
+
     const isCorrect = await submitAnswer(answer);
     const bonusPoints = Math.max(1, Math.floor(timeLeft / 10));
     const neurons = isCorrect ? 10 + bonusPoints : 0;
@@ -85,20 +105,19 @@ export default function PuzzleArea() {
     setLastResult(isCorrect ? 'correct' : 'incorrect');
     setShowResult(true);
     setEarnedNeurons(neurons);
+    setAnsweredAt(Date.now());
 
     if (isCorrect) {
-      setMood('happy');
+      // CRITICAL: call solvePuzzle to track global progress, achievements, stage advancement
+      solvePuzzle(timeSpent, hintsUsedThisPuzzle);
       addNeurons(neurons);
+      setMood('happy');
       playSuccess();
+
       setTimeout(() => {
         setShowResult(false);
-        if (isComplete) {
-          setMood('excited');
-          setTimeout(() => setGameState('hub'), 500);
-        } else {
-          nextPuzzle();
-        }
-      }, 2200);
+        nextPuzzle();
+      }, 2000);
     } else {
       setMood('confused');
       playError();
@@ -118,6 +137,7 @@ export default function PuzzleArea() {
     setTimeout(() => {
       setShowResult(false);
       setMood('thinking');
+      nextPuzzle();
     }, 2000);
   };
 
@@ -128,6 +148,7 @@ export default function PuzzleArea() {
       if (currentPuzzle.hint) {
         setHint(currentPuzzle.hint);
       }
+      setTimeout(() => setMood('thinking'), 1000);
     }
   };
 
@@ -135,11 +156,7 @@ export default function PuzzleArea() {
     skipPuzzle();
     setShowSkipConfirm(false);
     setMood('neutral');
-    if (isComplete) {
-      setGameState('hub');
-    } else {
-      nextPuzzle();
-    }
+    nextPuzzle();
   };
 
   const getPuzzleComponent = () => {
@@ -147,16 +164,16 @@ export default function PuzzleArea() {
     const puzzleProps = { puzzle: currentPuzzle, onAnswer: handleAnswer, disabled: showResult };
 
     switch (currentPuzzle.type) {
-      case 'raven_matrix': return <RavenMatrix {...puzzleProps} />;
-      case 'logic_sequence': return <LogicSequence {...puzzleProps} />;
-      case 'math_problem': return <MathProblem {...puzzleProps} />;
-      case 'sudoku': return <Sudoku {...puzzleProps} />;
-      case 'analogies': return <Analogies {...puzzleProps} />;
-      case 'spatial_thinking': return <SpatialThinking {...puzzleProps} />;
+      case 'raven_matrix':    return <RavenMatrix {...puzzleProps} />;
+      case 'logic_sequence':  return <LogicSequence {...puzzleProps} />;
+      case 'math_problem':    return <MathProblem {...puzzleProps} />;
+      case 'sudoku':          return <Sudoku {...puzzleProps} />;
+      case 'analogies':       return <Analogies {...puzzleProps} />;
+      case 'spatial_thinking':return <SpatialThinking {...puzzleProps} />;
       case 'cryptarithmetic': return <Cryptarithmetic {...puzzleProps} />;
-      case 'probability': return <Probability {...puzzleProps} />;
+      case 'probability':     return <Probability {...puzzleProps} />;
       default: return (
-        <div className="flex items-center justify-center h-full">
+        <div className="flex items-center justify-center h-32">
           <p style={{ color: 'rgba(255,255,255,0.4)' }}>Загрузка задачи...</p>
         </div>
       );
@@ -182,38 +199,30 @@ export default function PuzzleArea() {
   }
 
   const puzzleLabel = PUZZLE_TYPE_LABELS[currentPuzzle.type] || currentPuzzle.type.toUpperCase();
+  const requiredPuzzles = 5;
+  const solvedCount = sessionStats.solved;
 
   return (
-    <div className="w-full h-full flex flex-col">
+    <div className="w-full h-full flex flex-col relative">
       {/* Header */}
-      <header className="flex items-center justify-between px-5 py-3 relative"
+      <header className="flex items-center justify-between px-5 py-3"
         style={{
           background: 'rgba(0,0,0,0.7)',
           borderBottom: `1px solid ${stageColor}22`,
           backdropFilter: 'blur(10px)'
         }}>
-
-        {/* Back button + stage info */}
         <div className="flex items-center gap-4">
-          <GameButton
-            onClick={() => setGameState('hub')}
-            variant="ghost"
-            size="sm"
-          >
+          <GameButton onClick={() => setGameState('hub')} variant="ghost" size="sm">
             ← НАЗАД
           </GameButton>
-
           <div className="w-px h-6" style={{ background: 'rgba(255,255,255,0.1)' }}/>
-
           <div className="flex items-center gap-2">
             <div className="w-2 h-2 rounded-full animate-neon-pulse"
               style={{ background: stageColor, boxShadow: `0 0 6px ${stageColor}` }}/>
-            <span className="text-xs font-bold tracking-widest uppercase"
-              style={{ color: stageColor }}>
+            <span className="text-xs font-bold tracking-widest uppercase" style={{ color: stageColor }}>
               {puzzleLabel}
             </span>
           </div>
-
           <div className="text-xs tracking-widest px-2 py-0.5 rounded-sm"
             style={{
               color: 'rgba(255,255,255,0.3)',
@@ -224,9 +233,20 @@ export default function PuzzleArea() {
           </div>
         </div>
 
-        {/* Right side: timer + hints */}
         <div className="flex items-center gap-3">
-          {/* Hint info */}
+          {/* Progress dots */}
+          <div className="flex gap-1 items-center">
+            {Array.from({ length: Math.min(requiredPuzzles, 5) }, (_, i) => (
+              <div key={i} className="w-2 h-2 rounded-full"
+                style={{
+                  background: i < solvedCount ? stageColor : 'rgba(255,255,255,0.1)',
+                  boxShadow: i < solvedCount ? `0 0 4px ${stageColor}` : 'none',
+                  transition: 'all 0.3s'
+                }}/>
+            ))}
+          </div>
+
+          {/* Hint indicator */}
           <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-sm"
             style={{
               background: 'rgba(0,0,0,0.5)',
@@ -250,24 +270,19 @@ export default function PuzzleArea() {
       {/* Main content */}
       <div className="flex-1 flex overflow-hidden">
         {/* Puzzle area */}
-        <div className="flex-1 overflow-y-auto p-5 relative">
-          {/* Puzzle type indicator */}
+        <div className="flex-1 overflow-y-auto p-5">
           <div className="mb-4 flex items-center gap-3">
             <div className="h-px flex-1" style={{ background: `linear-gradient(to right, ${stageColor}33, transparent)` }}/>
-            <span className="text-xs tracking-widest" style={{ color: stageColor + '88' }}>
-              ЗАДАЧА АКТИВНА
-            </span>
+            <span className="text-xs tracking-widest" style={{ color: stageColor + '88' }}>ЗАДАЧА АКТИВНА</span>
             <div className="h-px flex-1" style={{ background: `linear-gradient(to left, ${stageColor}33, transparent)` }}/>
           </div>
 
-          {/* Puzzle panel */}
           <div className="max-w-3xl mx-auto rounded-sm overflow-hidden"
             style={{
               background: 'rgba(5,5,20,0.85)',
               border: `1px solid ${stageColor}33`,
               boxShadow: `0 0 30px ${stageColor}11`
             }}>
-            {/* Puzzle content */}
             <div className="p-5">
               {getPuzzleComponent()}
             </div>
@@ -294,21 +309,19 @@ export default function PuzzleArea() {
           )}
         </div>
 
-        {/* Right sidebar: chicken + actions */}
-        <div className="w-56 flex flex-col flex-shrink-0"
+        {/* Right sidebar */}
+        <div className="w-52 flex flex-col flex-shrink-0"
           style={{
             background: 'rgba(0,0,0,0.5)',
             borderLeft: `1px solid ${stageColor}18`,
             backdropFilter: 'blur(10px)'
           }}>
-          {/* Chicken */}
           <div className="p-4 flex flex-col items-center border-b" style={{ borderColor: `${stageColor}18` }}>
-            <div className="w-32 h-36">
+            <div className="w-28 h-32">
               <ChickenCharacter stage={chickenStage} />
             </div>
           </div>
 
-          {/* Actions */}
           <div className="p-4 space-y-3">
             <div className="text-xs tracking-widest mb-3 flex items-center gap-2"
               style={{ color: 'rgba(255,255,255,0.3)' }}>
@@ -347,21 +360,19 @@ export default function PuzzleArea() {
             </GameButton>
           </div>
 
-          {/* Difficulty info */}
           <div className="mt-auto p-4 border-t" style={{ borderColor: `${stageColor}18` }}>
-            <div className="text-xs mb-2 tracking-widest" style={{ color: 'rgba(255,255,255,0.2)' }}>
-              СЛОЖНОСТЬ
-            </div>
+            <div className="text-xs mb-2 tracking-widest" style={{ color: 'rgba(255,255,255,0.2)' }}>СЛОЖНОСТЬ</div>
             <div className="flex gap-1">
               {Array.from({ length: 5 }, (_, i) => (
                 <div key={i} className="flex-1 h-1 rounded-sm"
                   style={{
-                    background: i < (currentPuzzle.difficulty || 1)
-                      ? stageColor
-                      : 'rgba(255,255,255,0.08)',
+                    background: i < (currentPuzzle.difficulty || 1) ? stageColor : 'rgba(255,255,255,0.08)',
                     boxShadow: i < (currentPuzzle.difficulty || 1) ? `0 0 4px ${stageColor}` : 'none'
-                  }} />
+                  }}/>
               ))}
+            </div>
+            <div className="mt-3 text-xs" style={{ color: 'rgba(255,255,255,0.2)' }}>
+              РЕШЕНО: <span style={{ color: stageColor }}>{solvedCount}</span>
             </div>
           </div>
         </div>
@@ -369,16 +380,14 @@ export default function PuzzleArea() {
 
       {/* Result overlay */}
       {showResult && (
-        <div className="absolute inset-0 flex items-center justify-center" style={{ zIndex: 20 }}>
-          <div className="absolute inset-0" style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)' }}/>
+        <div className="absolute inset-0 flex items-center justify-center" style={{ zIndex: 50 }}>
+          <div className="absolute inset-0" style={{ background: 'rgba(0,0,0,0.72)', backdropFilter: 'blur(4px)' }}/>
           <div className="relative px-10 py-8 rounded-sm text-center"
             style={{
-              background: 'rgba(5,5,20,0.95)',
+              background: 'rgba(5,5,20,0.97)',
               border: `2px solid ${lastResult === 'correct' ? '#00ff88' : '#ff3366'}`,
               boxShadow: `0 0 40px ${lastResult === 'correct' ? 'rgba(0,255,136,0.4)' : 'rgba(255,51,102,0.4)'}`
             }}>
-
-            {/* Result icon */}
             <div className="w-16 h-16 mx-auto mb-4">
               {lastResult === 'correct' ? (
                 <svg viewBox="0 0 60 60" fill="none" className="w-full h-full">
@@ -396,7 +405,6 @@ export default function PuzzleArea() {
                 </svg>
               )}
             </div>
-
             <div className="text-lg font-black tracking-widest mb-2"
               style={{
                 color: lastResult === 'correct' ? '#00ff88' : '#ff3366',
@@ -404,26 +412,43 @@ export default function PuzzleArea() {
               }}>
               {lastResult === 'correct' ? 'ВЕРНО!' : 'ОШИБКА'}
             </div>
-
             {lastResult === 'correct' && earnedNeurons > 0 && (
               <div className="flex items-center justify-center gap-2">
-                <div className="w-4 h-4">
-                  <svg viewBox="0 0 16 16" fill="none" className="w-full h-full">
-                    <circle cx="8" cy="8" r="6" stroke="#a78bfa" strokeWidth="1"/>
-                    <circle cx="8" cy="8" r="2.5" fill="#a78bfa"/>
-                  </svg>
-                </div>
+                <svg viewBox="0 0 16 16" fill="none" className="w-4 h-4">
+                  <circle cx="8" cy="8" r="6" stroke="#a78bfa" strokeWidth="1"/>
+                  <circle cx="8" cy="8" r="2.5" fill="#a78bfa"/>
+                </svg>
                 <span className="text-sm font-mono font-bold" style={{ color: '#a78bfa' }}>
                   +{earnedNeurons} НЕЙРОНОВ
                 </span>
               </div>
             )}
-
             {lastResult === 'incorrect' && (
               <p className="text-xs tracking-wide" style={{ color: 'rgba(255,51,102,0.6)' }}>
-                Попробуйте ещё раз...
+                Попробуйте следующую задачу...
               </p>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Stage complete overlay */}
+      {isComplete && (
+        <div className="absolute inset-0 flex items-center justify-center" style={{ zIndex: 60 }}>
+          <div className="absolute inset-0" style={{ background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(8px)' }}/>
+          <div className="relative px-12 py-10 rounded-sm text-center"
+            style={{
+              background: 'rgba(5,5,20,0.97)',
+              border: `2px solid ${stageColor}`,
+              boxShadow: `0 0 60px ${stageColor}44`
+            }}>
+            <div className="text-3xl font-black tracking-widest mb-3"
+              style={{ color: stageColor, textShadow: `0 0 20px ${stageColor}` }}>
+              ЭТАП ЗАВЕРШЁН!
+            </div>
+            <div className="text-sm" style={{ color: 'rgba(255,255,255,0.5)' }}>
+              Возвращение в главное меню...
+            </div>
           </div>
         </div>
       )}
@@ -436,23 +461,12 @@ export default function PuzzleArea() {
         accentColor="red"
       >
         <div className="text-center py-4">
-          <div className="w-14 h-14 mx-auto mb-4">
-            <svg viewBox="0 0 56 56" fill="none" className="w-full h-full">
-              <circle cx="28" cy="28" r="26" stroke="#ff3366" strokeWidth="1.5" fill="rgba(255,51,102,0.08)"/>
-              <path d="M28 18 L28 30" stroke="#ff3366" strokeWidth="2.5" strokeLinecap="round"/>
-              <circle cx="28" cy="37" r="2" fill="#ff3366"/>
-            </svg>
-          </div>
           <p className="text-sm mb-6" style={{ color: 'rgba(255,255,255,0.5)' }}>
-            Вы потеряете возможность заработать нейроны<br/>за эту задачу.
+            Вы потеряете нейроны за эту задачу.
           </p>
           <div className="flex justify-center gap-3">
-            <GameButton onClick={() => setShowSkipConfirm(false)} variant="secondary">
-              ОТМЕНА
-            </GameButton>
-            <GameButton onClick={handleSkip} variant="danger">
-              ПРОПУСТИТЬ
-            </GameButton>
+            <GameButton onClick={() => setShowSkipConfirm(false)} variant="secondary">ОТМЕНА</GameButton>
+            <GameButton onClick={handleSkip} variant="danger">ПРОПУСТИТЬ</GameButton>
           </div>
         </div>
       </GameModal>

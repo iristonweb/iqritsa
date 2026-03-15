@@ -7,75 +7,18 @@ interface RavenMatrixProps {
   disabled: boolean;
 }
 
-type Shape = 'circle' | 'square' | 'triangle' | 'diamond';
-type Color = '#00ffff' | '#8b5cf6' | '#00ff88' | '#ff3366';
-
-const MatrixCell = ({ shape, color, size = 30 }: { shape: Shape | '?'; color: Color | string; size?: number }) => {
-  if (shape === '?') {
-    return (
-      <div className="w-full h-full flex items-center justify-center rounded-sm"
-        style={{ background: 'rgba(0,255,255,0.05)', border: '2px dashed rgba(0,255,255,0.4)' }}>
-        <span className="text-xl font-black animate-neon-pulse" style={{ color: '#00ffff', textShadow: '0 0 10px #00ffff' }}>?</span>
-      </div>
-    );
-  }
-
-  const s = size;
-  return (
-    <div className="w-full h-full flex items-center justify-center rounded-sm"
-      style={{ background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.08)' }}>
-      <svg width={s} height={s} viewBox="0 0 40 40" fill="none">
-        {shape === 'circle' && (
-          <circle cx="20" cy="20" r="16" fill={color + '33'} stroke={color} strokeWidth="2"
-            style={{ filter: `drop-shadow(0 0 4px ${color})` }}/>
-        )}
-        {shape === 'square' && (
-          <rect x="6" y="6" width="28" height="28" rx="2" fill={color + '33'} stroke={color} strokeWidth="2"
-            style={{ filter: `drop-shadow(0 0 4px ${color})` }}/>
-        )}
-        {shape === 'triangle' && (
-          <polygon points="20,4 36,36 4,36" fill={color + '33'} stroke={color} strokeWidth="2"
-            style={{ filter: `drop-shadow(0 0 4px ${color})` }}/>
-        )}
-        {shape === 'diamond' && (
-          <polygon points="20,3 37,20 20,37 3,20" fill={color + '33'} stroke={color} strokeWidth="2"
-            style={{ filter: `drop-shadow(0 0 4px ${color})` }}/>
-        )}
-      </svg>
-    </div>
-  );
-};
-
 export default function RavenMatrix({ puzzle, onAnswer, disabled }: RavenMatrixProps) {
   const [selected, setSelected] = useState<number | null>(null);
 
-  const SHAPES: Shape[] = ['circle', 'square', 'triangle', 'diamond'];
-  const COLORS: Color[] = ['#00ffff', '#8b5cf6', '#00ff88', '#ff3366'];
-
-  // Generate a 3x3 matrix puzzle
-  const [matrixData] = useState(() => {
-    const s = SHAPES[Math.floor(Math.random() * SHAPES.length)];
-    const c = COLORS[Math.floor(Math.random() * COLORS.length)];
-    const matrix: Array<{ shape: Shape | '?'; color: Color | string }> = [
-      { shape: SHAPES[0], color: COLORS[0] }, { shape: SHAPES[1], color: COLORS[1] }, { shape: SHAPES[2], color: COLORS[2] },
-      { shape: SHAPES[1], color: COLORS[2] }, { shape: SHAPES[2], color: COLORS[0] }, { shape: SHAPES[0], color: COLORS[1] },
-      { shape: SHAPES[2], color: COLORS[1] }, { shape: SHAPES[0], color: COLORS[2] }, { shape: '?', color: '' },
-    ];
-    const answer = { shape: SHAPES[1], color: COLORS[0] };
-    const options = [
-      answer,
-      { shape: SHAPES[0], color: COLORS[1] },
-      { shape: SHAPES[2], color: COLORS[2] },
-      { shape: SHAPES[1], color: COLORS[2] },
-    ];
-    return { matrix, answer, options, correctIndex: 0 };
-  });
+  const matrix: string[][] = puzzle?.question?.matrix || [['○','□','△'],['□','△','○'],['△','○','?']];
+  const options: string[] = puzzle?.question?.options || ['□','○','△','◇'];
+  const label: string = puzzle?.question?.label || "Определите паттерн";
 
   const handleSubmit = () => {
-    if (selected !== null) {
-      onAnswer(selected === matrixData.correctIndex ? matrixData.correctIndex : selected);
-    }
+    if (selected !== null) onAnswer(selected);
   };
+
+  const labels = ['A', 'B', 'C', 'D', 'E', 'F'];
 
   return (
     <div className="space-y-6">
@@ -85,18 +28,33 @@ export default function RavenMatrix({ puzzle, onAnswer, disabled }: RavenMatrixP
       </div>
 
       <div className="text-xs text-center tracking-widest" style={{ color: 'rgba(255,255,255,0.3)' }}>
-        ОПРЕДЕЛИТЕ ПАТТЕРН И ВЫБЕРИТЕ НЕДОСТАЮЩИЙ ЭЛЕМЕНТ
+        {label.toUpperCase()} — выберите элемент вместо «?»
       </div>
 
       {/* 3x3 Matrix */}
-      <div className="mx-auto" style={{ width: 'fit-content' }}>
-        <div className="grid grid-cols-3 gap-2 p-4 rounded-sm"
-          style={{ background: 'rgba(0,0,0,0.5)', border: '1px solid rgba(255,215,0,0.2)' }}>
-          {matrixData.matrix.map((cell, i) => (
-            <div key={i} style={{ width: '70px', height: '70px' }}>
-              <MatrixCell shape={cell.shape} color={cell.color} />
-            </div>
-          ))}
+      <div className="flex justify-center">
+        <div className="p-4 rounded-sm" style={{ background: 'rgba(0,0,0,0.5)', border: '1px solid rgba(255,215,0,0.2)' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 68px)', gap: 6 }}>
+            {matrix.flat().map((cell, i) => {
+              const isQuestion = cell === '?';
+              return (
+                <div key={i}
+                  style={{
+                    width: 68, height: 68, borderRadius: 4,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: 28, fontFamily: 'monospace',
+                    background: isQuestion ? 'rgba(0,255,255,0.08)' : 'rgba(0,0,0,0.4)',
+                    border: `1px solid ${isQuestion ? '#00ffff' : 'rgba(255,215,0,0.2)'}`,
+                    boxShadow: isQuestion ? '0 0 12px rgba(0,255,255,0.3)' : 'none',
+                    color: isQuestion ? '#00ffff' : 'rgba(200,220,255,0.8)',
+                  }}>
+                  {isQuestion ? (
+                    <span className="animate-neon-pulse" style={{ textShadow: '0 0 10px #00ffff' }}>?</span>
+                  ) : cell}
+                </div>
+              );
+            })}
+          </div>
         </div>
       </div>
 
@@ -104,28 +62,32 @@ export default function RavenMatrix({ puzzle, onAnswer, disabled }: RavenMatrixP
       <div className="text-xs text-center tracking-widest" style={{ color: 'rgba(255,255,255,0.3)' }}>
         ВАРИАНТЫ ОТВЕТОВ
       </div>
-      <div className="grid grid-cols-4 gap-3">
-        {matrixData.options.map((opt, i) => (
-          <button
-            key={i}
-            onClick={() => !disabled && setSelected(i)}
-            disabled={disabled}
-            className="relative transition-all duration-200"
-            style={{
-              height: '70px',
-              background: selected === i ? 'rgba(255,215,0,0.1)' : 'rgba(0,0,0,0.4)',
-              border: `2px solid ${selected === i ? '#ffd700' : 'rgba(255,255,255,0.08)'}`,
-              borderRadius: '4px',
-              boxShadow: selected === i ? '0 0 15px rgba(255,215,0,0.3)' : 'none',
-              cursor: disabled ? 'not-allowed' : 'pointer',
-            }}>
-            <div className="absolute top-1 left-1 text-xs font-bold"
-              style={{ color: selected === i ? '#ffd700' : 'rgba(255,255,255,0.2)' }}>
-              {['A', 'B', 'C', 'D'][i]}
-            </div>
-            <MatrixCell shape={opt.shape} color={opt.color} size={25}/>
-          </button>
-        ))}
+      <div className="flex justify-center gap-3 flex-wrap">
+        {options.map((opt, i) => {
+          const isSelected = selected === i;
+          return (
+            <button key={i}
+              onClick={() => !disabled && setSelected(i)}
+              disabled={disabled}
+              style={{
+                width: 68, height: 68, borderRadius: 4, position: 'relative',
+                background: isSelected ? 'rgba(255,215,0,0.12)' : 'rgba(0,0,0,0.4)',
+                border: `2px solid ${isSelected ? '#ffd700' : 'rgba(255,255,255,0.1)'}`,
+                boxShadow: isSelected ? '0 0 15px rgba(255,215,0,0.3)' : 'none',
+                cursor: disabled ? 'not-allowed' : 'pointer',
+                fontSize: 26, fontFamily: 'monospace',
+                color: isSelected ? '#ffd700' : 'rgba(200,220,255,0.6)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                transition: 'all 0.15s',
+              }}>
+              <span style={{
+                position: 'absolute', top: 2, left: 4, fontSize: 9, fontWeight: 'bold',
+                color: isSelected ? '#ffd700' : 'rgba(255,255,255,0.2)'
+              }}>{labels[i]}</span>
+              {opt}
+            </button>
+          );
+        })}
       </div>
 
       <div className="flex justify-center">

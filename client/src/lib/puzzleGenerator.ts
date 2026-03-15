@@ -1,501 +1,243 @@
 import { Puzzle } from "./stores/usePuzzles";
 
-// Puzzle generator functions for each type
 export function generatePuzzle(type: string, stage: number): Puzzle {
   const baseId = `${type}_${stage}_${Date.now()}`;
   const difficulty = stage + 1;
-  const timeLimit = Math.max(60, 180 - (stage * 15)); // Decreasing time limit
-  
+  const timeLimit = Math.max(60, 180 - (stage * 15));
+
   switch (type) {
-    case 'logic_sequence':
-      return generateLogicSequence(baseId, stage, difficulty, timeLimit);
-    case 'raven_matrix':
-      return generateRavenMatrix(baseId, stage, difficulty, timeLimit);
-    case 'math_problem':
-      return generateMathProblem(baseId, stage, difficulty, timeLimit);
-    case 'sudoku':
-      return generateSudoku(baseId, stage, difficulty, timeLimit);
-    case 'analogies':
-      return generateAnalogies(baseId, stage, difficulty, timeLimit);
-    case 'spatial_thinking':
-      return generateSpatialThinking(baseId, stage, difficulty, timeLimit);
-    case 'cryptarithmetic':
-      return generateCryptarithmetic(baseId, stage, difficulty, timeLimit);
-    case 'probability':
-      return generateProbability(baseId, stage, difficulty, timeLimit);
-    default:
-      throw new Error(`Unknown puzzle type: ${type}`);
+    case 'logic_sequence': return generateLogicSequence(baseId, stage, difficulty, timeLimit);
+    case 'raven_matrix':   return generateRavenMatrix(baseId, stage, difficulty, timeLimit);
+    case 'math_problem':   return generateMathProblem(baseId, stage, difficulty, timeLimit);
+    case 'sudoku':         return generateSudoku(baseId, stage, difficulty, timeLimit);
+    case 'analogies':      return generateAnalogies(baseId, stage, difficulty, timeLimit);
+    case 'spatial_thinking': return generateSpatialThinking(baseId, stage, difficulty, timeLimit);
+    case 'cryptarithmetic': return generateCryptarithmetic(baseId, stage, difficulty, timeLimit);
+    case 'probability':    return generateProbability(baseId, stage, difficulty, timeLimit);
+    default: throw new Error(`Unknown puzzle type: ${type}`);
   }
 }
 
 function generateLogicSequence(id: string, stage: number, difficulty: number, timeLimit: number): Puzzle {
   const sequences = [
-    // Arithmetic progressions
-    { seq: [2, 4, 6, 8], answer: 10, pattern: "Add 2" },
-    { seq: [1, 3, 5, 7], answer: 9, pattern: "Add 2 (odd numbers)" },
-    { seq: [5, 10, 15, 20], answer: 25, pattern: "Add 5" },
-    
-    // Geometric progressions
-    { seq: [2, 4, 8, 16], answer: 32, pattern: "Multiply by 2" },
-    { seq: [3, 6, 12, 24], answer: 48, pattern: "Multiply by 2" },
-    { seq: [1, 3, 9, 27], answer: 81, pattern: "Multiply by 3" },
-    
-    // Fibonacci-like
-    { seq: [1, 1, 2, 3, 5], answer: 8, pattern: "Fibonacci sequence" },
-    { seq: [0, 1, 1, 2, 3, 5], answer: 8, pattern: "Fibonacci sequence" },
-    
-    // Squares and cubes
-    { seq: [1, 4, 9, 16], answer: 25, pattern: "Perfect squares" },
-    { seq: [1, 8, 27, 64], answer: 125, pattern: "Perfect cubes" },
-    
-    // Prime numbers (for higher stages)
-    { seq: [2, 3, 5, 7], answer: 11, pattern: "Prime numbers" },
-    { seq: [2, 3, 5, 7, 11], answer: 13, pattern: "Prime numbers" }
+    { seq: [2, 4, 6, 8], answer: 10, label: "Арифметическая прогрессия (+2)" },
+    { seq: [1, 3, 5, 7], answer: 9, label: "Нечётные числа (+2)" },
+    { seq: [5, 10, 15, 20], answer: 25, label: "Прогрессия (+5)" },
+    { seq: [2, 4, 8, 16], answer: 32, label: "Геометрическая прогрессия (×2)" },
+    { seq: [3, 6, 12, 24], answer: 48, label: "Прогрессия (×2)" },
+    { seq: [1, 3, 9, 27], answer: 81, label: "Прогрессия (×3)" },
+    { seq: [1, 1, 2, 3, 5], answer: 8, label: "Числа Фибоначчи" },
+    { seq: [1, 4, 9, 16], answer: 25, label: "Квадраты чисел" },
+    { seq: [1, 8, 27, 64], answer: 125, label: "Кубы чисел" },
+    { seq: [2, 3, 5, 7, 11], answer: 13, label: "Простые числа" },
   ];
-  
-  // Select based on difficulty/stage
-  const availableSequences = sequences.filter((_, index) => {
-    if (stage <= 1) return index < 4; // Simple arithmetic
-    if (stage <= 3) return index < 8; // Include geometric
-    return true; // All sequences for advanced stages
-  });
-  
-  const selected = availableSequences[Math.floor(Math.random() * availableSequences.length)];
-  
+  const max = stage <= 1 ? 3 : stage <= 3 ? 7 : sequences.length;
+  const pool = sequences.slice(0, max);
+  const selected = pool[Math.floor(Math.random() * pool.length)];
   return {
-    id,
-    type: 'logic_sequence',
-    stage,
-    difficulty,
-    timeLimit,
-    generatedAt: Date.now(),
-    question: {
-      sequence: selected.seq,
-      pattern: selected.pattern
-    },
+    id, type: 'logic_sequence', stage, difficulty, timeLimit, generatedAt: Date.now(),
+    question: { sequence: selected.seq, label: selected.label },
     answer: selected.answer
   };
 }
 
 function generateRavenMatrix(id: string, stage: number, difficulty: number, timeLimit: number): Puzzle {
-  // Generate 3x3 matrix patterns with shapes and properties
-  const shapes = ['○', '□', '△', '◇', '★', '♦', '●', '■', '▲', '♠'];
+  // All options as indices. answer = correctIndex into options array.
   const patterns = [
-    'rotation', 'size_change', 'color_change', 'addition', 'subtraction'
-  ];
-  
-  const pattern = patterns[Math.floor(Math.random() * patterns.length)];
-  const baseShapes = shapes.slice(0, 3 + stage); // More shapes for higher stages
-  
-  // Create a 3x3 matrix with missing bottom-right element
-  const matrix = generateMatrixPattern(baseShapes, pattern, difficulty);
-  const options = generateMatrixOptions(matrix, baseShapes);
-  
-  return {
-    id,
-    type: 'raven_matrix',
-    stage,
-    difficulty,
-    timeLimit,
-    generatedAt: Date.now(),
-    question: {
-      matrix,
-      options,
-      pattern
+    {
+      matrix: [['○','□','△'],['□','△','○'],['△','○','?']],
+      answer: '□',
+      options: ['□','○','△','◇'],
+      correctIndex: 0,
+      label: "Циклическая ротация фигур"
     },
-    answer: options.correctIndex
+    {
+      matrix: [['●','○','●'],['○','●','○'],['●','○','?']],
+      answer: '●',
+      options: ['○','●','□','△'],
+      correctIndex: 1,
+      label: "Чередование заполнения"
+    },
+    {
+      matrix: [['◇','○','□'],['○','□','◇'],['□','◇','?']],
+      answer: '○',
+      options: ['◇','□','○','△'],
+      correctIndex: 2,
+      label: "Смещение на одну позицию"
+    },
+  ];
+  const selected = patterns[Math.floor(Math.random() * patterns.length)];
+  return {
+    id, type: 'raven_matrix', stage, difficulty, timeLimit, generatedAt: Date.now(),
+    question: { matrix: selected.matrix, options: selected.options, label: selected.label },
+    answer: selected.correctIndex
   };
 }
 
 function generateMathProblem(id: string, stage: number, difficulty: number, timeLimit: number): Puzzle {
   const problems = [
-    // Basic arithmetic (stages 0-1)
-    {
-      question: "Если 3 курицы несут 3 яйца за 3 дня, сколько яиц снесут 6 куриц за 6 дней?",
-      answer: 12,
-      solution: "6 куриц × 2 яйца за 6 дней = 12 яиц",
-      difficulty: 1
-    },
-    {
-      question: "В курятнике 15 куриц. 5 из них ушли гулять. Сколько осталось?",
-      answer: 10,
-      solution: "15 - 5 = 10",
-      difficulty: 1
-    },
-    
-    // Algebra (stages 2-3)
-    {
-      question: "Найдите x: 2x + 5 = 13",
-      answer: 4,
-      solution: "2x = 13 - 5 = 8, x = 4",
-      difficulty: 3
-    },
-    {
-      question: "Решите уравнение: 3x - 7 = 2x + 8",
-      answer: 15,
-      solution: "3x - 2x = 8 + 7, x = 15",
-      difficulty: 3
-    },
-    
-    // Geometry (stages 3-4)
-    {
-      question: "Прямоугольный курятник имеет длину 8м и ширину 6м. Какова его площадь?",
-      answer: 48,
-      solution: "Площадь = длина × ширина = 8 × 6 = 48 м²",
-      difficulty: 4
-    },
-    
-    // Advanced math (stages 5+)
-    {
-      question: "Сколько способами можно выбрать 3 курицы из 7?",
-      answer: 35,
-      solution: "C(7,3) = 7!/(3!×4!) = (7×6×5)/(3×2×1) = 35",
-      difficulty: 6
-    }
+    { text: "Если 3 курицы несут 3 яйца за 3 дня, сколько яиц снесут 6 куриц за 6 дней?", answer: 12, diff: 1 },
+    { text: "В курятнике 15 куриц. 5 из них ушли гулять. Сколько осталось?", answer: 10, diff: 1 },
+    { text: "Найдите x: 2x + 5 = 13", answer: 4, diff: 3 },
+    { text: "Решите уравнение: 3x − 7 = 2x + 8", answer: 15, diff: 3 },
+    { text: "Прямоугольник 8×6. Какова его площадь?", answer: 48, diff: 2 },
+    { text: "17 × 13 = ?", answer: 221, diff: 2 },
+    { text: "Чему равно 15% от 200?", answer: 30, diff: 2 },
+    { text: "Сколько способов выбрать 3 из 7 предметов?", answer: 35, diff: 6 },
+    { text: "Найдите сумму чисел от 1 до 20", answer: 210, diff: 4 },
   ];
-  
-  const suitableProblems = problems.filter(p => p.difficulty <= difficulty + 1);
-  const selected = suitableProblems[Math.floor(Math.random() * suitableProblems.length)];
-  
+  const pool = problems.filter(p => p.diff <= difficulty + 1);
+  const selected = pool[Math.floor(Math.random() * pool.length)];
   return {
-    id,
-    type: 'math_problem',
-    stage,
-    difficulty,
-    timeLimit,
-    generatedAt: Date.now(),
-    question: {
-      text: selected.question,
-      solution: selected.solution
-    },
+    id, type: 'math_problem', stage, difficulty, timeLimit, generatedAt: Date.now(),
+    question: { text: selected.text },
     answer: selected.answer
   };
 }
 
 function generateSudoku(id: string, stage: number, difficulty: number, timeLimit: number): Puzzle {
-  // Generate 4x4 Sudoku for simplicity
-  const solution = [
-    [1, 2, 3, 4],
-    [3, 4, 1, 2],
-    [2, 1, 4, 3],
-    [4, 3, 2, 1]
-  ];
-  
-  // Create puzzle by removing numbers based on difficulty
-  const puzzle = solution.map(row => [...row]);
-  const cellsToRemove = Math.min(12, 6 + difficulty * 2); // More removed cells = harder
-  
-  const positions = [];
-  for (let i = 0; i < 4; i++) {
-    for (let j = 0; j < 4; j++) {
-      positions.push([i, j]);
-    }
+  // Full solution grid (4x4)
+  const solution = [[1,2,3,4],[3,4,1,2],[2,1,4,3],[4,3,2,1]];
+  const grid = solution.map(row => [...row]);
+
+  // Remove some cells
+  const toRemove = Math.min(8, 4 + difficulty);
+  const positions: [number,number][] = [];
+  for (let r = 0; r < 4; r++) for (let c = 0; c < 4; c++) positions.push([r,c]);
+  for (let i = positions.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [positions[i], positions[j]] = [positions[j], positions[i]];
   }
-  
-  // Randomly remove cells
-  for (let i = 0; i < cellsToRemove; i++) {
-    if (positions.length > 0) {
-      const randomIndex = Math.floor(Math.random() * positions.length);
-      const [row, col] = positions.splice(randomIndex, 1)[0];
-      puzzle[row][col] = 0; // 0 represents empty cell
-    }
+  const removed: [number,number][] = [];
+  for (let i = 0; i < toRemove; i++) {
+    const [r, c] = positions[i];
+    grid[r][c] = 0;
+    removed.push([r, c]);
   }
-  
+
+  // Ask for the FIRST removed cell, store its answer as a number
+  const [targetRow, targetCol] = removed[0];
+  const targetAnswer = solution[targetRow][targetCol];
+
   return {
-    id,
-    type: 'sudoku',
-    stage,
-    difficulty,
-    timeLimit,
-    generatedAt: Date.now(),
+    id, type: 'sudoku', stage, difficulty, timeLimit, generatedAt: Date.now(),
     question: {
-      puzzle,
-      size: 4
+      grid,
+      targetRow,
+      targetCol,
+      question: `Какое число стоит в строке ${targetRow + 1}, столбце ${targetCol + 1}?`
     },
-    answer: solution
+    answer: targetAnswer  // single number
   };
 }
 
 function generateAnalogies(id: string, stage: number, difficulty: number, timeLimit: number): Puzzle {
   const analogies = [
-    {
-      question: "Курица относится к яйцу, как дерево к ___?",
-      options: ["листу", "плоду", "корню", "ветке"],
-      correct: 1, // "плоду"
-      explanation: "И курица производит яйца, и дерево производит плоды",
-      difficulty: 1
-    },
-    {
-      question: "Врач относится к больнице, как учитель к ___?",
-      options: ["ученику", "школе", "книге", "доске"],
-      correct: 1, // "школе"
-      explanation: "Место работы - врач в больнице, учитель в школе",
-      difficulty: 1
-    },
-    {
-      question: "Молоток относится к гвоздю, как отвертка к ___?",
-      options: ["винту", "доске", "металлу", "рукоятке"],
-      correct: 0, // "винту"
-      explanation: "Инструмент и объект - молоток для гвоздей, отвертка для винтов",
-      difficulty: 2
-    },
-    {
-      question: "Начало относится к концу, как рассвет к ___?",
-      options: ["утру", "закату", "дню", "вечеру"],
-      correct: 1, // "закату"
-      explanation: "Противоположности - начало/конец, рассвет/закат",
-      difficulty: 3
-    },
-    {
-      question: "Книга относится к библиотеке, как произведение искусства к ___?",
-      options: ["музею", "краске", "художнику", "раме"],
-      correct: 0, // "музею"
-      explanation: "Место хранения - книги в библиотеке, произведения искусства в музее",
-      difficulty: 4
-    }
+    { text: "Курица → яйцо, как дерево → ___?", options: ["листу","плоду","корню","ветке"], correct: 1, diff: 1 },
+    { text: "Врач → больница, как учитель → ___?", options: ["ученику","школе","книге","доске"], correct: 1, diff: 1 },
+    { text: "Молоток → гвоздь, как отвёртка → ___?", options: ["винту","доске","металлу","рукоятке"], correct: 0, diff: 2 },
+    { text: "Начало → конец, как рассвет → ___?", options: ["утру","закату","дню","вечеру"], correct: 1, diff: 3 },
+    { text: "Книга → библиотека, как картина → ___?", options: ["музею","краске","художнику","раме"], correct: 0, diff: 4 },
+    { text: "Слово → предложение, как нота → ___?", options: ["звуку","мелодии","скрипке","паузе"], correct: 1, diff: 3 },
+    { text: "Рука → палец, как нога → ___?", options: ["колену","ступне","пальцу ноги","голени"], correct: 2, diff: 2 },
   ];
-  
-  const suitableAnalogies = analogies.filter(a => a.difficulty <= difficulty);
-  const selected = suitableAnalogies[Math.floor(Math.random() * suitableAnalogies.length)];
-  
+  const pool = analogies.filter(a => a.diff <= difficulty + 1);
+  const selected = pool[Math.floor(Math.random() * pool.length)];
   return {
-    id,
-    type: 'analogies',
-    stage,
-    difficulty,
-    timeLimit,
-    generatedAt: Date.now(),
-    question: {
-      text: selected.question,
-      options: selected.options,
-      explanation: selected.explanation
-    },
-    answer: selected.correct
+    id, type: 'analogies', stage, difficulty, timeLimit, generatedAt: Date.now(),
+    question: { text: selected.text, options: selected.options },
+    answer: selected.correct  // index
   };
 }
 
 function generateSpatialThinking(id: string, stage: number, difficulty: number, timeLimit: number): Puzzle {
-  const spatialTasks = [
-    {
-      type: "rotation",
-      description: "Какая фигура получится при повороте на 90° по часовой стрелке?",
-      original: "▶",
-      options: ["▼", "◀", "▲", "▶"],
-      correct: 0, // "▼"
-      difficulty: 2
-    },
-    {
-      type: "reflection",
-      description: "Какая фигура получится при отражении по вертикальной оси?",
-      original: "◥",
-      options: ["◤", "◢", "◣", "◥"],
-      correct: 0, // "◤"
-      difficulty: 2
-    },
-    {
-      type: "cube_faces",
-      description: "Сколько граней у куба?",
-      original: "⬛",
-      options: ["4", "6", "8", "12"],
-      correct: 1, // "6"
-      difficulty: 1
-    },
-    {
-      type: "folding",
-      description: "Какая развертка может быть сложена в куб?",
-      original: "📦",
-      options: ["┼", "├", "┬", "│"],
-      correct: 0, // "┼"
-      difficulty: 4
-    }
+  const tasks = [
+    { desc: "Сколько граней у куба?", options: ["4","6","8","12"], correct: 1, diff: 1 },
+    { desc: "Какая фигура получится при повороте ▶ на 90° по часовой?", options: ["▼","◀","▲","▶"], correct: 0, diff: 2 },
+    { desc: "Какая фигура является зеркальным отражением ◥ по вертикали?", options: ["◤","◢","◣","◥"], correct: 0, diff: 2 },
+    { desc: "Сколько треугольников в большом треугольнике, разделённом на 4?", options: ["3","4","5","6"], correct: 2, diff: 3 },
+    { desc: "Куб со стороной 3 — его объём?", options: ["9","18","27","36"], correct: 2, diff: 3 },
+    { desc: "Сколько вершин у октаэдра?", options: ["4","6","8","12"], correct: 1, diff: 4 },
   ];
-  
-  const suitableTasks = spatialTasks.filter(t => t.difficulty <= difficulty);
-  const selected = suitableTasks[Math.floor(Math.random() * suitableTasks.length)];
-  
+  const pool = tasks.filter(t => t.diff <= difficulty + 1);
+  const selected = pool[Math.floor(Math.random() * pool.length)];
   return {
-    id,
-    type: 'spatial_thinking',
-    stage,
-    difficulty,
-    timeLimit,
-    generatedAt: Date.now(),
-    question: {
-      taskType: selected.type,
-      description: selected.description,
-      original: selected.original,
-      options: selected.options
-    },
-    answer: selected.correct
+    id, type: 'spatial_thinking', stage, difficulty, timeLimit, generatedAt: Date.now(),
+    question: { desc: selected.desc, options: selected.options },
+    answer: selected.correct  // index
   };
 }
 
 function generateCryptarithmetic(id: string, stage: number, difficulty: number, timeLimit: number): Puzzle {
-  const cryptoProblems = [
-    {
-      equation: "AB + AB = BAA",
-      letters: ["A", "B"],
-      solution: { A: 5, B: 4 }, // 45 + 45 = 90... wait, this doesn't work
-      solution2: { A: 1, B: 0 }, // 10 + 10 = 20... also doesn't work
-      // Let's use a working example:
-      actualSolution: { A: 9, B: 1 }, // 91 + 91 = 182, but that's not BAA format
-      difficulty: 3
-    },
-    {
-      equation: "SEND + MORE = MONEY",
-      letters: ["S", "E", "N", "D", "M", "O", "R", "Y"],
-      solution: { S: 9, E: 5, N: 6, D: 7, M: 1, O: 0, R: 8, Y: 2 },
-      difficulty: 7
-    },
-    {
-      equation: "TWO + TWO = FOUR",
-      letters: ["T", "W", "O", "F", "U", "R"],
-      solution: { T: 7, W: 3, O: 4, F: 1, U: 6, R: 8 }, // 734 + 734 = 1468
-      difficulty: 5
-    }
+  // Simple: show equation and ask for the result as a number
+  const problems = [
+    { eq: "123 + 456 = ?", answer: 579, diff: 1 },
+    { eq: "98 + 76 = ?", answer: 174, diff: 1 },
+    { eq: "АББА = 4-значное число, где А=1, Б=2. Найдите АББА.", answer: 1221, diff: 3 },
+    { eq: "TWO+TWO=FOUR. Если T=7,W=3,O=4 — найдите FOUR.", answer: 1468, diff: 5 },
+    { eq: "Найдите число: АВ + ВА = 121, где А и В — цифры.", answer: 56, diff: 4 },
   ];
-  
-  // For simplicity, let's create a working simple problem
-  const simpleProblem = {
-    equation: "ABC + DEF = GHI",
-    letters: ["A", "B", "C", "D", "E", "F", "G", "H", "I"],
-    solution: { A: 1, B: 2, C: 3, D: 4, E: 5, F: 6, G: 7, H: 8, I: 9 },
-    actualEquation: "123 + 456 = 579", // This works
-    difficulty: 4
-  };
-  
+  const pool = problems.filter(p => p.diff <= difficulty);
+  const selected = pool[Math.floor(Math.random() * pool.length)];
   return {
-    id,
-    type: 'cryptarithmetic',
-    stage,
-    difficulty,
-    timeLimit,
-    generatedAt: Date.now(),
-    question: {
-      equation: "123 + 456 = ???", // Simplified for demo
-      letters: ["A", "B", "C"],
-      description: "Каждая буква представляет уникальную цифру"
-    },
-    answer: { A: 1, B: 2, C: 3 } // Simplified answer
+    id, type: 'cryptarithmetic', stage, difficulty, timeLimit, generatedAt: Date.now(),
+    question: { eq: selected.eq, desc: "Найдите числовое значение выражения" },
+    answer: selected.answer  // number
   };
 }
 
 function generateProbability(id: string, stage: number, difficulty: number, timeLimit: number): Puzzle {
-  const probabilityProblems = [
+  // Answer stored as option index (like analogies)
+  const problems = [
     {
-      question: "В корзине 10 яиц: 6 белых и 4 коричневых. Какова вероятность вытащить белое яйцо?",
-      answer: 0.6,
-      explanation: "P = 6/10 = 0.6",
-      difficulty: 2
+      text: "В корзине 6 белых и 4 коричневых яйца. Вероятность вытащить белое?",
+      options: ["0.3","0.4","0.6","0.7"], correct: 2, diff: 1
     },
     {
-      question: "Бросаем монету два раза. Какова вероятность получить два орла?",
-      answer: 0.25,
-      explanation: "P = 1/2 × 1/2 = 1/4 = 0.25",
-      difficulty: 3
+      text: "Монету бросают дважды. Вероятность двух орлов?",
+      options: ["0.1","0.25","0.5","0.75"], correct: 1, diff: 2
     },
     {
-      question: "В урне 5 красных и 3 синих шара. Вытаскиваем 2 шара без возвращения. Какова вероятность, что оба красные?",
-      answer: 0.357, // 5/8 * 4/7 = 20/56 = 5/14 ≈ 0.357
-      explanation: "P = (5/8) × (4/7) = 5/14 ≈ 0.357",
-      difficulty: 5
+      text: "Кубик 1-6. Вероятность выпадения числа > 4?",
+      options: ["1/6","1/3","1/2","2/3"], correct: 1, diff: 2
     },
     {
-      question: "Игральная кость бросается один раз. Какова вероятность выпадения четного числа?",
-      answer: 0.5,
-      explanation: "Четные числа: 2, 4, 6. P = 3/6 = 0.5",
-      difficulty: 1
-    }
+      text: "52 карты, 4 туза. Вероятность вытащить туза?",
+      options: ["1/52","1/26","1/13","1/4"], correct: 2, diff: 3
+    },
+    {
+      text: "5 красных, 3 синих шара. Вытащить красный (без возврата, 1 попытка)?",
+      options: ["3/8","5/8","1/2","5/7"], correct: 1, diff: 3
+    },
   ];
-  
-  const suitableProblems = probabilityProblems.filter(p => p.difficulty <= difficulty);
-  const selected = suitableProblems[Math.floor(Math.random() * suitableProblems.length)];
-  
+  const pool = problems.filter(p => p.diff <= difficulty + 1);
+  const selected = pool[Math.floor(Math.random() * pool.length)];
   return {
-    id,
-    type: 'probability',
-    stage,
-    difficulty,
-    timeLimit,
-    generatedAt: Date.now(),
-    question: {
-      text: selected.question,
-      explanation: selected.explanation
-    },
-    answer: selected.answer
+    id, type: 'probability', stage, difficulty, timeLimit, generatedAt: Date.now(),
+    question: { text: selected.text, options: selected.options },
+    answer: selected.correct  // index
   };
 }
 
-// Validation function
+// Validation
 export async function validateAnswer(puzzle: Puzzle, userAnswer: any): Promise<boolean> {
-  const tolerance = 0.01; // For floating point comparisons
-  
+  const tolerance = 0.5;
+
   switch (puzzle.type) {
     case 'logic_sequence':
     case 'math_problem':
+    case 'cryptarithmetic':
+    case 'sudoku':
       return Math.abs(Number(userAnswer) - Number(puzzle.answer)) < tolerance;
-      
+
     case 'raven_matrix':
     case 'analogies':
     case 'spatial_thinking':
-      return Number(userAnswer) === Number(puzzle.answer);
-      
-    case 'sudoku':
-      return JSON.stringify(userAnswer) === JSON.stringify(puzzle.answer);
-      
-    case 'cryptarithmetic':
-      // Compare object keys and values
-      const expected = puzzle.answer;
-      if (typeof userAnswer !== 'object' || typeof expected !== 'object') return false;
-      
-      for (const key in expected) {
-        if (userAnswer[key] !== expected[key]) return false;
-      }
-      return true;
-      
     case 'probability':
-      const userNum = Number(userAnswer);
-      const expectedNum = Number(puzzle.answer);
-      return Math.abs(userNum - expectedNum) < tolerance;
-      
+      return Number(userAnswer) === Number(puzzle.answer);
+
     default:
-      console.error(`Unknown puzzle type for validation: ${puzzle.type}`);
+      console.error(`Unknown puzzle type: ${puzzle.type}`);
       return false;
   }
-}
-
-// Helper functions for matrix generation
-function generateMatrixPattern(shapes: string[], pattern: string, difficulty: number) {
-  // Create a 3x3 matrix based on the pattern
-  const matrix = [
-    [shapes[0], shapes[1], shapes[2]],
-    [shapes[1], shapes[2], shapes[0]],
-    [shapes[2], shapes[0], '?']
-  ];
-  
-  return matrix;
-}
-
-function generateMatrixOptions(matrix: any[][], shapes: string[]) {
-  const correctAnswer = shapes[1]; // Based on our simple pattern
-  const options = [correctAnswer];
-  
-  // Add random distractors
-  while (options.length < 6) {
-    const randomShape = shapes[Math.floor(Math.random() * shapes.length)];
-    if (!options.includes(randomShape)) {
-      options.push(randomShape);
-    }
-  }
-  
-  // Shuffle options
-  for (let i = options.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [options[i], options[j]] = [options[j], options[i]];
-  }
-  
-  return {
-    options,
-    correctIndex: options.indexOf(correctAnswer)
-  };
 }

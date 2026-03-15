@@ -6,6 +6,7 @@ import StageSelection from "./StageSelection";
 import AchievementsPanel from "./AchievementsPanel";
 import ShopPanel from "./ShopPanel";
 import { useChicken } from "../../lib/stores/useChicken";
+import { usePuzzles } from "../../lib/stores/usePuzzles";
 import { useIQGame } from "../../lib/stores/useIQGame";
 import { useGameAudio } from "../../hooks/useGameAudio";
 import GameButton from "../ui/GameButton";
@@ -13,9 +14,16 @@ import GameButton from "../ui/GameButton";
 export default function GameHub() {
   const { chickenStage, neurons, totalSolved } = useChicken();
   const { setGameState } = useIQGame();
+  const { setCurrentStage } = usePuzzles();
   const { isMuted, toggleMute } = useGameAudio();
   const [showAchievements, setShowAchievements] = useState(false);
   const [showShop, setShowShop] = useState(false);
+
+  const startTraining = () => {
+    // Initialize the current stage so puzzles are generated before showing PuzzleArea
+    setCurrentStage(chickenStage);
+    setGameState('puzzle');
+  };
 
   const stageColors = ['#ffd700', '#c0c0c0', '#4a9eff', '#9b59b6', '#1abc9c', '#e74c3c', '#00d4ff', '#ff00ff'];
   const currentColor = stageColors[Math.min(chickenStage, stageColors.length - 1)];
@@ -198,7 +206,7 @@ export default function GameHub() {
           {/* Main CTA */}
           <div className="mt-6">
             <GameButton
-              onClick={() => setGameState('puzzle')}
+              onClick={startTraining}
               size="lg"
               className="px-12"
             >

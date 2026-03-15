@@ -3,6 +3,7 @@ import { subscribeWithSelector } from "zustand/middleware";
 import { generatePuzzle, validateAnswer } from "../puzzleGenerator";
 import { STAGE_DATA } from "../gameData";
 import { getLocalStorage, setLocalStorage } from "../utils";
+import { useChicken } from "./useChicken";
 
 export interface Puzzle {
   id: string;
@@ -68,17 +69,21 @@ export const usePuzzles = create<PuzzleState>()(
       console.log(`Setting current stage to: ${stage + 1}`);
       set({ 
         currentStage: stage,
-        isComplete: false 
+        isComplete: false,
+        sessionStats: { solved: 0, failed: 0, hintsUsed: 0, totalTime: 0 }
       });
       
-      // Reset hints based on stage and upgrades
+      // Reset hints based on stage and upgrades (extraHints upgrade adds +1 each level)
       const baseHints = 3;
       const stageData = STAGE_DATA[stage];
       const bonusHints = stageData?.bonusHints || 0;
+      const chickenUpgrades = useChicken.getState().upgrades;
+      const upgradeHints = chickenUpgrades?.extraHints || 0;
+      const totalHints = baseHints + bonusHints + upgradeHints;
       
       set({ 
-        hints: baseHints + bonusHints,
-        maxHints: baseHints + bonusHints
+        hints: totalHints,
+        maxHints: totalHints
       });
       
       // Generate first puzzle for this stage

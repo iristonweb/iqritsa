@@ -236,10 +236,9 @@ export const ACHIEVEMENTS: Achievement[] = [
     reward: 50,
     rarity: 'rare',
     condition: () => {
-      // This would need to be tracked in localStorage with timestamps
       const lastPlayed = localStorage.getItem('last-played-date');
       const today = new Date().toDateString();
-      return lastPlayed && lastPlayed !== today;
+      return Boolean(lastPlayed) && lastPlayed !== today;
     }
   }
 ];

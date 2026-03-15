@@ -3,48 +3,26 @@ import GameButton from "../ui/GameButton";
 
 interface AnalogiesProps {
   puzzle: any;
-  onAnswer: (answer: string) => void;
+  onAnswer: (answer: number) => void;
   disabled: boolean;
 }
 
-const ANALOGIES = [
-  { q: "Курица → яйцо, как дерево → ___?", opts: ["листу", "плоду", "корню", "ветке"], ans: "плоду", cat: "Биологические" },
-  { q: "Врач → больница, как учитель → ___?", opts: ["ученику", "школе", "книге", "доске"], ans: "школе", cat: "Профессии" },
-  { q: "Рука → палец, как нога → ___?", opts: ["колену", "ступне", "пальцу ноги", "голени"], ans: "пальцу ноги", cat: "Анатомия" },
-  { q: "Молоток → гвоздь, как отвёртка → ___?", opts: ["винту", "доске", "металлу", "рукоятке"], ans: "винту", cat: "Функции" },
-  { q: "Рассвет → закат, как начало → ___?", opts: ["утру", "концу", "дню", "вечеру"], ans: "концу", cat: "Антонимы" },
-  { q: "Книга → библиотека, как картина → ___?", opts: ["художнику", "музею", "раме", "холсту"], ans: "музею", cat: "Место хранения" },
-  { q: "Слово → предложение, как нота → ___?", opts: ["звуку", "мелодии", "скрипке", "паузе"], ans: "мелодии", cat: "Структура" },
-];
-
 export default function Analogies({ puzzle, onAnswer, disabled }: AnalogiesProps) {
-  const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
-  const [data] = useState(() => {
-    if (puzzle?.question?.text && puzzle?.question?.options) {
-      return {
-        q: puzzle.question.text,
-        opts: puzzle.question.options,
-        ans: puzzle.question.options[puzzle.answer] || ANALOGIES[0].ans,
-        cat: "Аналогия"
-      };
-    }
-    return ANALOGIES[Math.floor(Math.random() * ANALOGIES.length)];
-  });
+  const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
 
+  const questionText: string = puzzle?.question?.text || "Выберите правильный ответ:";
+  const options: string[] = puzzle?.question?.options || ["A","B","C","D"];
   const labels = ['A', 'B', 'C', 'D'];
 
   const handleSubmit = () => {
-    if (selectedAnswer) onAnswer(selectedAnswer);
+    if (selectedIndex !== null) onAnswer(selectedIndex);
   };
 
   return (
     <div className="space-y-6">
-      {/* Category badge */}
       <div className="flex items-center gap-2">
         <div className="w-1 h-4 rounded-sm" style={{ background: '#9b59b6', boxShadow: '0 0 6px #9b59b6' }}/>
-        <span className="text-xs font-bold tracking-widest uppercase" style={{ color: '#9b59b6' }}>
-          {data.cat}
-        </span>
+        <span className="text-xs font-bold tracking-widest" style={{ color: '#9b59b6' }}>АНАЛОГИИ</span>
       </div>
 
       {/* Question */}
@@ -55,18 +33,17 @@ export default function Analogies({ puzzle, onAnswer, disabled }: AnalogiesProps
           boxShadow: '0 0 15px rgba(155,89,182,0.1)'
         }}>
         <div className="text-base font-medium text-center" style={{ color: '#e0e8ff', lineHeight: 1.6 }}>
-          {data.q}
+          {questionText}
         </div>
       </div>
 
       {/* Options grid */}
       <div className="grid grid-cols-2 gap-3">
-        {data.opts.map((opt: string, i: number) => {
-          const isSelected = selectedAnswer === opt;
+        {options.map((opt, i) => {
+          const isSelected = selectedIndex === i;
           return (
-            <button
-              key={i}
-              onClick={() => !disabled && setSelectedAnswer(opt)}
+            <button key={i}
+              onClick={() => !disabled && setSelectedIndex(i)}
               disabled={disabled}
               className="p-4 rounded-sm text-left transition-all duration-200"
               style={{
@@ -92,9 +69,8 @@ export default function Analogies({ puzzle, onAnswer, disabled }: AnalogiesProps
         })}
       </div>
 
-      {/* Submit */}
       <div className="flex justify-center">
-        <GameButton onClick={handleSubmit} disabled={!selectedAnswer || disabled} size="lg" variant="secondary">
+        <GameButton onClick={handleSubmit} disabled={selectedIndex === null || disabled} size="lg" variant="secondary">
           ПОДТВЕРДИТЬ ОТВЕТ
         </GameButton>
       </div>
