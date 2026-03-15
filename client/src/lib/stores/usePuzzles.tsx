@@ -99,12 +99,24 @@ export const usePuzzles = create<PuzzleState>()(
         return;
       }
       
-      // Select puzzle type based on stage
+      // Avoid repeating the same puzzle type back-to-back
       const availableTypes = stageData.puzzleTypes;
-      const randomType = availableTypes[Math.floor(Math.random() * availableTypes.length)];
+      const lastType = state.currentPuzzle?.type;
+      const filtered = availableTypes.length > 1
+        ? availableTypes.filter(t => t !== lastType)
+        : availableTypes;
+      const randomType = filtered[Math.floor(Math.random() * filtered.length)];
+      
+      // Build an exclude key from the last puzzle's question text (first string value found)
+      let excludeKey: string | undefined;
+      if (state.currentPuzzle) {
+        const q = state.currentPuzzle.question;
+        excludeKey = q?.key ?? q?.text ?? q?.eq ?? q?.desc ??
+          (q?.sequence ? JSON.stringify(q.sequence) : undefined);
+      }
       
       try {
-        const newPuzzle = generatePuzzle(randomType, state.currentStage);
+        const newPuzzle = generatePuzzle(randomType, state.currentStage, excludeKey);
         
         set({ 
           currentPuzzle: newPuzzle,
@@ -114,8 +126,7 @@ export const usePuzzles = create<PuzzleState>()(
         console.log(`Generated ${randomType} puzzle for stage ${state.currentStage + 1}:`, newPuzzle);
       } catch (error) {
         console.error('Failed to generate puzzle:', error);
-        // Fallback to logic sequence if generation fails
-        const fallbackPuzzle = generatePuzzle('logic_sequence', state.currentStage);
+        const fallbackPuzzle = generatePuzzle('logic_sequence', state.currentStage, excludeKey);
         set({ 
           currentPuzzle: fallbackPuzzle,
           lastAnswerCorrect: null 
