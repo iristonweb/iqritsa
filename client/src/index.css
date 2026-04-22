@@ -178,6 +178,8 @@ canvas {
   border: 1px solid rgba(0, 255, 255, 0.3) !important;
   color: #00ffff !important;
   font-family: 'Courier New', monospace !important;
+  -webkit-appearance: none;
+  appearance: none;
 }
 .neo-input:focus {
   border-color: #00ffff !important;
@@ -186,6 +188,28 @@ canvas {
 }
 .neo-input::placeholder {
   color: rgba(0, 255, 255, 0.3) !important;
+}
+
+/* Hide number input spinners */
+input[type=number]::-webkit-inner-spin-button,
+input[type=number]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type=number] { -moz-appearance: textfield; }
+
+/* Touch targets: minimum 44px height for buttons */
+button { min-height: 36px; }
+
+/* Prevent text selection flicker on mobile taps */
+button, [role="button"] {
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+
+/* Better mobile overflow */
+.overflow-y-auto {
+  -webkit-overflow-scrolling: touch;
 }
 
 /* ===== STAGE INDICATOR ===== */

@@ -74,7 +74,8 @@ export default function LogicSequence({ puzzle, onAnswer, disabled }: LogicSeque
           ВВЕДИТЕ СЛЕДУЮЩИЙ ЭЛЕМЕНТ
         </div>
         <input
-          type="text"
+          type="number"
+          inputMode="numeric"
           value={userAnswer}
           onChange={(e) => setUserAnswer(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && !disabled && userAnswer.trim() && handleSubmit()}

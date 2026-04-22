@@ -48,7 +48,8 @@ export default function Cryptarithmetic({ puzzle, onAnswer, disabled }: Cryptari
           ВВЕДИТЕ ЧИСЛОВОЙ ОТВЕТ
         </div>
         <input
-          type="text"
+          type="number"
+          inputMode="numeric"
           value={answer}
           onChange={(e) => {
             const val = e.target.value.replace(/[^0-9]/g, '');

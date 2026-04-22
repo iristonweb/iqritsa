@@ -39,7 +39,8 @@ export default function MathProblem({ puzzle, onAnswer, disabled }: MathProblemP
           ВВЕДИТЕ ЧИСЛОВОЙ ОТВЕТ
         </div>
         <input
-          type="text"
+          type="number"
+          inputMode="numeric"
           value={answer}
           onChange={(e) => setAnswer(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && !disabled && answer.trim() && handleSubmit()}
