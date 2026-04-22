@@ -2,6 +2,8 @@ import { useEffect, useRef } from "react";
 import "@fontsource/inter";
 import GameHub from "./components/game/GameHub";
 import PuzzleArea from "./components/game/PuzzleArea";
+import Leaderboard from "./components/game/Leaderboard";
+import MultiplayerRace from "./components/game/MultiplayerRace";
 import AchievementToast from "./components/ui/AchievementToast";
 import { useIQGame } from "./lib/stores/useIQGame";
 import { useGameAudio } from "./hooks/useGameAudio";
@@ -178,8 +180,10 @@ function App() {
 
       {/* Main Game UI */}
       <div className="relative w-full h-full" style={{ zIndex: 10 }}>
-        {gameState === 'hub' && <GameHub />}
-        {gameState === 'puzzle' && <PuzzleArea />}
+        {gameState === 'hub'          && <GameHub />}
+        {gameState === 'puzzle'       && <PuzzleArea />}
+        {gameState === 'leaderboard'  && <Leaderboard />}
+        {gameState === 'multiplayer'  && <MultiplayerRace />}
       </div>
 
       {/* Achievement notifications (above everything) */}

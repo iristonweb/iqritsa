@@ -200,10 +200,44 @@ export default function GameHub() {
           </div>
 
           {/* CTA */}
-          <div className="flex justify-center mb-4">
+          <div className="flex justify-center mb-3">
             <GameButton onClick={startTraining} size="lg" className="px-10 sm:px-12">
               ▶ НАЧАТЬ ТРЕНИРОВКУ
             </GameButton>
+          </div>
+
+          {/* Multiplayer buttons */}
+          <div className="flex gap-2 justify-center mb-3">
+            <button onClick={() => setGameState('multiplayer')}
+              className="flex items-center gap-2 px-4 py-2 text-xs font-bold tracking-widest rounded transition-all hover:opacity-90"
+              style={{
+                background: 'linear-gradient(135deg, rgba(0,255,255,0.15), rgba(139,92,246,0.15))',
+                color: '#00ffff',
+                border: '1px solid rgba(0,255,255,0.5)',
+                boxShadow: '0 0 16px rgba(0,255,255,0.2)'
+              }}>
+              <svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor">
+                <circle cx="5" cy="5" r="2.5"/>
+                <circle cx="11" cy="5" r="2.5"/>
+                <path d="M1 13c0-2.2 1.8-4 4-4h6c2.2 0 4 1.8 4 4"/>
+              </svg>
+              ГОНКА УМОВ
+            </button>
+            <button onClick={() => setGameState('leaderboard')}
+              className="flex items-center gap-2 px-4 py-2 text-xs font-bold tracking-widest rounded transition-all hover:opacity-90"
+              style={{
+                background: 'rgba(255,215,0,0.1)',
+                color: '#ffd700',
+                border: '1px solid rgba(255,215,0,0.4)',
+                boxShadow: '0 0 12px rgba(255,215,0,0.15)'
+              }}>
+              <svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor">
+                <rect x="2" y="9" width="3" height="5"/>
+                <rect x="6.5" y="5" width="3" height="9"/>
+                <rect x="11" y="2" width="3" height="12"/>
+              </svg>
+              РЕЙТИНГ
+            </button>
           </div>
 
           {/* Mobile-only: action buttons */}
