@@ -16,6 +16,7 @@ import Analogies from "../puzzles/Analogies";
 import SpatialThinking from "../puzzles/SpatialThinking";
 import Cryptarithmetic from "../puzzles/Cryptarithmetic";
 import Probability from "../puzzles/Probability";
+import VerbalReasoning from "../puzzles/VerbalReasoning";
 
 const PUZZLE_TYPE_LABELS: Record<string, string> = {
   raven_matrix: 'МАТРИЦЫ РАВЕНА',
@@ -26,6 +27,7 @@ const PUZZLE_TYPE_LABELS: Record<string, string> = {
   spatial_thinking: 'ПРОСТРАНСТВО',
   cryptarithmetic: 'КРИПТАРИФМ',
   probability: 'ВЕРОЯТНОСТЬ',
+  verbal_reasoning: 'СЛОВО И РАЗУМ',
 };
 
 const STAGE_COLORS = ['#ffd700','#c0c0c0','#4a9eff','#9b59b6','#1abc9c','#e74c3c','#00d4ff','#ff00ff'];
@@ -139,8 +141,9 @@ export default function PuzzleArea() {
       case 'sudoku':          return <Sudoku {...props} />;
       case 'analogies':       return <Analogies {...props} />;
       case 'spatial_thinking':return <SpatialThinking {...props} />;
-      case 'cryptarithmetic': return <Cryptarithmetic {...props} />;
-      case 'probability':     return <Probability {...props} />;
+      case 'cryptarithmetic':  return <Cryptarithmetic {...props} />;
+      case 'probability':      return <Probability {...props} />;
+      case 'verbal_reasoning': return <VerbalReasoning {...props} />;
       default: return (
         <div className="flex items-center justify-center h-32">
           <p style={{ color: 'rgba(255,255,255,0.4)' }}>Загрузка...</p>
