@@ -340,9 +340,9 @@ export default function PuzzleArea() {
           }}>
 
           {/* Chicken */}
-          <div className="p-4 flex justify-center border-b" style={{ borderColor: `${stageColor}18` }}>
-            <div className="w-24 h-28">
-              <ChickenCharacter stage={chickenStage} />
+          <div className="p-3 flex justify-center border-b" style={{ borderColor: `${stageColor}18` }}>
+            <div className="w-28 h-28 flex-shrink-0">
+              <ChickenCharacter stage={chickenStage} compact />
             </div>
           </div>
 
@@ -402,9 +402,9 @@ export default function PuzzleArea() {
               border: `1px solid ${stageColor}33`,
               backdropFilter: 'blur(10px)'
             }}>
-            <div className="p-4 flex justify-center border-b" style={{ borderColor: `${stageColor}22` }}>
-              <div className="w-20 h-24">
-                <ChickenCharacter stage={chickenStage} />
+            <div className="p-3 flex justify-center border-b" style={{ borderColor: `${stageColor}22` }}>
+              <div className="w-24 h-24">
+                <ChickenCharacter stage={chickenStage} compact />
               </div>
             </div>
             <div className="p-4 space-y-2">

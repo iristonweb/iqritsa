@@ -151,49 +151,74 @@ export default function GameHub() {
             </div>
           </div>
 
-          {/* Chicken + Brain + Stats */}
-          <div className="flex items-center justify-center gap-3 sm:gap-6 mb-4 flex-wrap sm:flex-nowrap">
-            {/* Brain */}
-            <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-full overflow-hidden flex-shrink-0"
-              style={{
-                border: `1px solid ${currentColor}44`,
-                boxShadow: `0 0 16px ${currentColor}22`
-              }}>
-              <BrainVisualization stage={chickenStage} />
+          {/* ── Main showcase: brain + chicken + stats ── */}
+          <div className="flex items-stretch justify-center gap-3 sm:gap-5 mb-4">
+
+            {/* Brain panel */}
+            <div className="hidden sm:flex flex-col items-center justify-center gap-2 flex-shrink-0">
+              <div className="w-28 h-28 rounded-full overflow-hidden flex-shrink-0"
+                style={{
+                  border: `2px solid ${currentColor}44`,
+                  boxShadow: `0 0 20px ${currentColor}22, inset 0 0 10px ${currentColor}11`
+                }}>
+                <BrainVisualization stage={chickenStage} />
+              </div>
+              <span className="text-xs tracking-widest text-center" style={{ color: currentColor + '77' }}>
+                НЕЙРОСЕТЬ
+              </span>
             </div>
 
-            {/* Chicken */}
-            <div className="flex-shrink-0">
+            {/* Chicken — central hero */}
+            <div className="flex-shrink-0 flex items-center justify-center"
+              style={{ width: '220px', minHeight: '220px' }}>
               <ChickenCharacter stage={chickenStage} />
             </div>
 
-            {/* Stats — horizontal on mobile, vertical on desktop */}
-            <div className="flex sm:flex-col gap-2 sm:gap-3 flex-wrap justify-center">
+            {/* Stats panel */}
+            <div className="flex flex-col gap-2 justify-center flex-shrink-0">
               {[
-                { val: totalSolved, label: 'РЕШЕНО', color: '#00ffff' },
-                { val: 50 + chickenStage * 25, label: 'IQ КЛЕПЫ', color: currentColor },
-                { val: neurons, label: 'НЕЙРОНЫ', color: '#a78bfa' },
-              ].map(({ val, label, color }) => (
-                <div key={label} className="px-3 py-2 rounded-sm text-center"
+                { val: totalSolved, label: 'РЕШЕНО', color: '#00ffff', icon: '◎' },
+                { val: 50 + chickenStage * 25, label: 'IQ КЛЕПЫ', color: currentColor, icon: '◈' },
+                { val: neurons, label: 'НЕЙРОНЫ', color: '#a78bfa', icon: '⬡' },
+              ].map(({ val, label, color, icon }) => (
+                <div key={label} className="px-3 py-2.5 rounded-sm"
                   style={{
-                    background: 'rgba(0,0,0,0.6)',
+                    background: `linear-gradient(135deg, rgba(0,0,0,0.7), ${color}08)`,
                     border: `1px solid ${color}33`,
-                    minWidth: '72px'
+                    boxShadow: `0 0 10px ${color}11`,
+                    minWidth: '84px'
                   }}>
-                  <div className="text-lg sm:text-xl font-black font-mono" style={{ color, textShadow: `0 0 8px ${color}66` }}>
-                    {val}
+                  <div className="text-xs tracking-widest mb-0.5" style={{ color: color + '55' }}>{icon} {label}</div>
+                  <div className="text-xl font-black font-mono" style={{ color, textShadow: `0 0 10px ${color}77` }}>
+                    {val.toLocaleString()}
                   </div>
-                  <div className="text-xs tracking-widest mt-0.5" style={{ color: color + '66' }}>{label}</div>
                 </div>
               ))}
             </div>
           </div>
 
+          {/* Mobile brain (shown below chicken on mobile) */}
+          <div className="sm:hidden flex justify-center mb-3">
+            <div className="w-20 h-20 rounded-full overflow-hidden"
+              style={{
+                border: `2px solid ${currentColor}44`,
+                boxShadow: `0 0 16px ${currentColor}22`
+              }}>
+              <BrainVisualization stage={chickenStage} />
+            </div>
+          </div>
+
           {/* Story text */}
-          <div className="text-center px-4 py-2.5 rounded-sm mb-4"
-            style={{ background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(0,255,255,0.1)' }}>
-            <p className="text-xs tracking-wide leading-relaxed" style={{ color: 'rgba(0,255,255,0.5)' }}>
-              <span style={{ color: '#00ffff' }}>&gt;&gt;</span>{' '}
+          <div className="px-4 py-2.5 rounded-sm mb-4 relative overflow-hidden"
+            style={{
+              background: 'rgba(0,0,0,0.5)',
+              border: `1px solid ${currentColor}18`,
+              boxShadow: `inset 0 0 20px ${currentColor}06`
+            }}>
+            <div className="absolute left-0 top-0 bottom-0 w-0.5"
+              style={{ background: `linear-gradient(to bottom, transparent, ${currentColor}, transparent)` }}/>
+            <p className="text-xs tracking-wide leading-relaxed pl-3" style={{ color: 'rgba(255,255,255,0.45)' }}>
+              <span style={{ color: currentColor, fontWeight: 'bold' }}>&gt;&gt;</span>{' '}
               После секретного эксперимента профессора Пёрышкина интеллект Клепы начал расти.
               Помогите ей пройти Поляну Испытаний и достичь абсолютного разума!
             </p>
