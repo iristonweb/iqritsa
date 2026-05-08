@@ -1,4 +1,6 @@
 import { create } from "zustand";
+import { apiUrl, authFetch } from "../api";
+import { supabase } from "../supabase";
 
 export interface LeaderboardEntry {
   id: number;
@@ -39,7 +41,7 @@ interface MultiplayerState {
   chatMessages: { from: string; text: string }[];
   raceResults: { name: string; score: number; solved: number }[];
 
-  ws: WebSocket | null;
+  channel: any | null;
 
   // actions
   fetchLeaderboard: () => Promise<void>;
@@ -67,7 +69,7 @@ export const useMultiplayer = create<MultiplayerState>((set, get) => ({
   raceStage: 0,
   chatMessages: [],
   raceResults: [],
-  ws: null,
+  channel: null,
 
   setPlayerName: (name) => {
     localStorage.setItem('mp-player-name', name);
@@ -79,7 +81,7 @@ export const useMultiplayer = create<MultiplayerState>((set, get) => ({
   fetchLeaderboard: async () => {
     set({ leaderboardLoading: true });
     try {
-      const res = await fetch('/api/leaderboard?limit=50');
+      const res = await fetch(apiUrl('/api/leaderboard?limit=50'));
       const data: LeaderboardEntry[] = await res.json();
       set({ leaderboard: data, leaderboardLoading: false });
     } catch {
@@ -89,7 +91,7 @@ export const useMultiplayer = create<MultiplayerState>((set, get) => ({
 
   submitScore: async (entry) => {
     try {
-      const res = await fetch('/api/leaderboard', {
+      const res = await authFetch('/api/leaderboard', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(entry),
@@ -103,96 +105,165 @@ export const useMultiplayer = create<MultiplayerState>((set, get) => ({
   },
 
   joinRace: (roomId, playerName, stage) => {
-    const { ws: existing } = get();
-    if (existing) existing.close();
+    if (!navigator.onLine) {
+      console.warn("Multiplayer unavailable offline");
+      return;
+    }
+    const { channel: existing } = get();
+    if (existing && supabase) {
+      supabase.removeChannel(existing);
+    }
 
-    const proto  = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsUrl  = `${proto}//${window.location.host}/ws`;
-    const socket = new WebSocket(wsUrl);
+    if (!supabase) {
+      console.warn("Supabase is not configured, multiplayer is disabled");
+      return;
+    }
 
-    socket.onopen = () => {
-      socket.send(JSON.stringify({ type: 'join_room', roomId, playerName, stage }));
-    };
+    const playerId = `${playerName}_${Date.now()}`;
+    const channelName = `${import.meta.env.VITE_REALTIME_ROOM_PREFIX || "iqritsa"}:${roomId}`;
+    const channel = supabase.channel(channelName);
 
-    socket.onmessage = (ev) => {
-      let msg: any;
-      try { msg = JSON.parse(ev.data); } catch { return; }
-
+    channel.on("broadcast", { event: "message" }, ({ payload }) => {
+      const msg = payload as any;
       switch (msg.type) {
-        case 'joined':
-          set({ playerId: msg.playerId, roomId: msg.roomId, racePhase: 'lobby' });
-          break;
-        case 'room_state':
-          set({ players: msg.players ?? [] });
-          break;
-        case 'player_joined':
-        case 'player_ready':
-        case 'score_update':
-        case 'player_finished':
-          set(s => {
+        case "player_joined":
+        case "player_ready":
+        case "score_update":
+        case "player_finished":
+          set((s) => {
             const players = [...s.players];
-            const idx = players.findIndex(p => p.id === msg.playerId);
+            const idx = players.findIndex((p) => p.id === msg.playerId);
             if (idx >= 0) {
               players[idx] = {
                 ...players[idx],
-                score:    msg.score    ?? players[idx].score,
-                solved:   msg.solved   ?? players[idx].solved,
-                finished: msg.type === 'player_finished' ? true : players[idx].finished,
-                ready:    msg.type === 'player_ready'    ? true : players[idx].ready,
+                score: msg.score ?? players[idx].score,
+                solved: msg.solved ?? players[idx].solved,
+                finished: msg.type === "player_finished" ? true : players[idx].finished,
+                ready: msg.type === "player_ready" ? true : players[idx].ready,
               };
-            } else if (msg.type === 'player_joined') {
-              players.push({ id: msg.playerId, name: msg.name, score: 0, solved: 0, finished: false, ready: false });
+            } else if (msg.type === "player_joined") {
+              players.push({
+                id: msg.playerId,
+                name: msg.name,
+                score: 0,
+                solved: 0,
+                finished: false,
+                ready: false,
+              });
             }
             return { players };
           });
           break;
-        case 'player_left':
-          set(s => ({ players: s.players.filter(p => p.id !== msg.playerId) }));
+        case "race_start":
+          set({ racePhase: "racing" });
           break;
-        case 'race_start':
-          set({ racePhase: 'racing' });
+        case "race_over":
+          set({ racePhase: "results", raceResults: msg.results ?? [] });
           break;
-        case 'race_over':
-          set({ racePhase: 'results', raceResults: msg.results ?? [] });
-          break;
-        case 'chat':
-          set(s => ({
-            chatMessages: [...s.chatMessages.slice(-49), { from: msg.from, text: msg.text }]
+        case "chat":
+          set((s) => ({
+            chatMessages: [...s.chatMessages.slice(-49), { from: msg.from, text: msg.text }],
           }));
           break;
       }
-    };
+    });
 
-    socket.onclose = () => {
-      set(s => s.racePhase === 'racing' ? { racePhase: 'results' } : {});
-    };
+    channel.subscribe((status) => {
+      if (status === "SUBSCRIBED") {
+        void channel.send({
+          type: "broadcast",
+          event: "message",
+          payload: { type: "player_joined", playerId, name: playerName },
+        });
+      }
+    });
 
-    set({ ws: socket, raceStage: stage, roomId, playerName, chatMessages: [], raceResults: [] });
+    set({
+      channel,
+      playerId,
+      racePhase: "lobby",
+      raceStage: stage,
+      roomId,
+      playerName,
+      chatMessages: [],
+      raceResults: [],
+      players: [{ id: playerId, name: playerName, score: 0, solved: 0, finished: false, ready: false }],
+    });
   },
 
   setReady: () => {
-    const { ws } = get();
-    if (ws?.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: 'ready' }));
+    const { channel, playerId, playerName } = get();
+    if (!channel) return;
+    void channel.send({
+      type: "broadcast",
+      event: "message",
+      payload: { type: "player_ready", playerId, name: playerName },
+    });
+    void channel.send({
+      type: "broadcast",
+      event: "message",
+      payload: { type: "race_start" },
+    });
   },
 
   sendAnswer: (correct, points) => {
-    const { ws } = get();
-    if (ws?.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: 'answer', correct, points }));
+    const { channel, playerId, playerName, players } = get();
+    if (!channel) return;
+    const me = players.find((p) => p.id === playerId);
+    const score = (me?.score ?? 0) + (correct ? points : 0);
+    const solved = (me?.solved ?? 0) + (correct ? 1 : 0);
+    void channel.send({
+      type: "broadcast",
+      event: "message",
+      payload: { type: "score_update", playerId, name: playerName, score, solved },
+    });
   },
 
   sendFinish: () => {
-    const { ws } = get();
-    if (ws?.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: 'finish' }));
+    const { channel, playerId, playerName, players, roomId, raceStage } = get();
+    if (!channel) return;
+    const me = players.find((p) => p.id === playerId);
+    void channel.send({
+      type: "broadcast",
+      event: "message",
+      payload: {
+        type: "player_finished",
+        playerId,
+        name: playerName,
+        score: me?.score ?? 0,
+        solved: me?.solved ?? 0,
+      },
+    });
+    void authFetch("/api/race/result", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        raceId: roomId,
+        playerName,
+        score: me?.score ?? 0,
+        solved: me?.solved ?? 0,
+        totalQuestions: 10,
+        timeMs: 0,
+        stage: raceStage,
+      }),
+    });
   },
 
   sendChat: (text) => {
-    const { ws } = get();
-    if (ws?.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: 'chat', text }));
+    const { channel, playerName } = get();
+    if (!channel) return;
+    void channel.send({
+      type: "broadcast",
+      event: "message",
+      payload: { type: "chat", from: playerName, text: text.slice(0, 120) },
+    });
   },
 
   leaveRace: () => {
-    const { ws } = get();
-    if (ws) ws.close();
-    set({ ws: null, racePhase: 'idle', players: [], chatMessages: [], raceResults: [] });
+    const { channel } = get();
+    if (channel && supabase) {
+      supabase.removeChannel(channel);
+    }
+    set({ channel: null, racePhase: 'idle', players: [], chatMessages: [], raceResults: [] });
   },
 }));

@@ -1,195 +1,60 @@
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
 import "@fontsource/inter";
-import GameHub from "./components/game/GameHub";
-import PuzzleArea from "./components/game/PuzzleArea";
-import Leaderboard from "./components/game/Leaderboard";
-import MultiplayerRace from "./components/game/MultiplayerRace";
-import AchievementToast from "./components/ui/AchievementToast";
-import { useIQGame } from "./lib/stores/useIQGame";
-import { useGameAudio } from "./hooks/useGameAudio";
-import { useChicken } from "./lib/stores/useChicken";
-import { usePuzzles } from "./lib/stores/usePuzzles";
+import BottomTabs from "@/components/iq/BottomTabs";
+import OnboardingFlow from "@/components/iq/OnboardingFlow";
+import BarnScreen from "@/screens/BarnScreen";
+import LaboratoryScreen from "@/screens/LaboratoryScreen";
+import IncubatorScreen from "@/screens/IncubatorScreen";
+import CollectionScreen from "@/screens/CollectionScreen";
+import ArenaScreen from "@/screens/ArenaScreen";
+import SettingsScreen from "@/screens/SettingsScreen";
+import { professorPhrases } from "@/content/lore";
+import { useIQritsaStore } from "@/store/useIQritsaStore";
 import "./index.css";
 
-function ParticleField() {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-
-    const particles: Array<{
-      x: number; y: number; vx: number; vy: number;
-      size: number; opacity: number; color: string;
-    }> = [];
-
-    const colors = ['#00ffff', '#8b5cf6', '#00ff88', '#ff3366'];
-    for (let i = 0; i < 80; i++) {
-      particles.push({
-        x: Math.random() * canvas.width,
-        y: Math.random() * canvas.height,
-        vx: (Math.random() - 0.5) * 0.4,
-        vy: (Math.random() - 0.5) * 0.4,
-        size: Math.random() * 2 + 0.5,
-        opacity: Math.random() * 0.6 + 0.1,
-        color: colors[Math.floor(Math.random() * colors.length)]
-      });
-    }
-
-    let animId: number;
-    const draw = () => {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-      for (let i = 0; i < particles.length; i++) {
-        for (let j = i + 1; j < particles.length; j++) {
-          const dx = particles[i].x - particles[j].x;
-          const dy = particles[i].y - particles[j].y;
-          const dist = Math.sqrt(dx * dx + dy * dy);
-          if (dist < 100) {
-            ctx.beginPath();
-            ctx.strokeStyle = `rgba(0, 255, 255, ${0.08 * (1 - dist / 100)})`;
-            ctx.lineWidth = 0.5;
-            ctx.moveTo(particles[i].x, particles[i].y);
-            ctx.lineTo(particles[j].x, particles[j].y);
-            ctx.stroke();
-          }
-        }
-      }
-
-      particles.forEach(p => {
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-        ctx.fillStyle = p.color + Math.floor(p.opacity * 255).toString(16).padStart(2, '0');
-        ctx.fill();
-        p.x += p.vx;
-        p.y += p.vy;
-        if (p.x < 0 || p.x > canvas.width) p.vx *= -1;
-        if (p.y < 0 || p.y > canvas.height) p.vy *= -1;
-      });
-
-      animId = requestAnimationFrame(draw);
-    };
-
-    draw();
-
-    const handleResize = () => {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-    };
-    window.addEventListener('resize', handleResize);
-
-    return () => {
-      cancelAnimationFrame(animId);
-      window.removeEventListener('resize', handleResize);
-    };
-  }, []);
-
-  return (
-    <canvas
-      ref={canvasRef}
-      className="absolute inset-0 pointer-events-none"
-      style={{ zIndex: 0 }}
-    />
-  );
-}
-
 function App() {
-  const { gameState, initializeGame } = useIQGame();
-  const { initializeAudio, playBackgroundMusic } = useGameAudio();
-  const { loadFromStorage } = useChicken();
-  const { loadProgress } = usePuzzles();
-
-  const audioUnlocked = useRef(false);
+  const currentScreen = useIQritsaStore((s) => s.currentScreen);
+  const message = useIQritsaStore((s) => s.professorMessage);
+  const load = useIQritsaStore((s) => s.load);
+  const save = useIQritsaStore((s) => s.save);
+  const registerSessionHeartbeat = useIQritsaStore((s) => s.registerSessionHeartbeat);
+  const rolloverDay = useIQritsaStore((s) => s.rolloverDay);
+  const syncProfileFromCloud = useIQritsaStore((s) => s.syncProfileFromCloud);
+  const syncProfileToCloud = useIQritsaStore((s) => s.syncProfileToCloud);
+  const refreshSocialShelf = useIQritsaStore((s) => s.refreshSocialShelf);
 
   useEffect(() => {
-    // Load saved progress FIRST
-    loadFromStorage();
-    loadProgress();
+    load();
+    registerSessionHeartbeat();
+    rolloverDay();
+    void syncProfileFromCloud();
+    void refreshSocialShelf();
+  }, [load, registerSessionHeartbeat, rolloverDay, syncProfileFromCloud, refreshSocialShelf]);
 
-    // Initialize game state
-    initializeGame();
-
-    // Initialize audio system (pre-load sounds)
-    initializeAudio();
-
-    // Track "returning player" for achievement
-    const today = new Date().toDateString();
-    const lastPlayed = localStorage.getItem('last-played-date');
-    if (lastPlayed !== today) {
-      localStorage.setItem('last-played-date', today);
-    }
-  }, []);
-
-  // Unlock audio on first user interaction (browser autoplay policy)
   useEffect(() => {
-    const unlock = () => {
-      if (audioUnlocked.current) return;
-      audioUnlocked.current = true;
-      playBackgroundMusic('background');
-      document.removeEventListener('click', unlock);
-      document.removeEventListener('keydown', unlock);
-    };
-
-    document.addEventListener('click', unlock);
-    document.addEventListener('keydown', unlock);
-
-    return () => {
-      document.removeEventListener('click', unlock);
-      document.removeEventListener('keydown', unlock);
-    };
-  }, [playBackgroundMusic]);
+    save();
+    void syncProfileToCloud();
+  }, [save, syncProfileToCloud, currentScreen, message]);
 
   return (
-    <div className="w-screen h-screen circuit-bg overflow-hidden relative"
-      style={{ background: '#050510' }}>
-      {/* Animated particle field */}
-      <ParticleField />
+    <div className="iq-app-shell">
+      <header className="iq-header">
+        <h1 className="iq-main-title">IQюрица</h1>
+        <p className="iq-subtitle">{professorPhrases.greeting}</p>
+      </header>
 
-      {/* Scan line effect */}
-      <div className="absolute inset-0 pointer-events-none overflow-hidden" style={{ zIndex: 1 }}>
-        <div className="animate-scan absolute inset-x-0 h-32"
-          style={{
-            background: 'linear-gradient(to bottom, transparent, rgba(0,255,255,0.03), transparent)',
-            top: 0
-          }}
-        />
-      </div>
+      <main className="iq-main">
+        {currentScreen === "barn" && <BarnScreen />}
+        {currentScreen === "laboratory" && <LaboratoryScreen />}
+        {currentScreen === "incubator" && <IncubatorScreen />}
+        {currentScreen === "collection" && <CollectionScreen />}
+        {currentScreen === "arena" && <ArenaScreen />}
+        {currentScreen === "settings" && <SettingsScreen />}
+      </main>
 
-      {/* Corner decorations */}
-      <div className="absolute top-0 left-0 w-20 h-20 pointer-events-none" style={{ zIndex: 2 }}>
-        <div className="absolute top-2 left-2 w-8 h-0.5 bg-cyan-400" style={{ boxShadow: '0 0 8px #00ffff' }} />
-        <div className="absolute top-2 left-2 w-0.5 h-8 bg-cyan-400" style={{ boxShadow: '0 0 8px #00ffff' }} />
-      </div>
-      <div className="absolute top-0 right-0 w-20 h-20 pointer-events-none" style={{ zIndex: 2 }}>
-        <div className="absolute top-2 right-2 w-8 h-0.5 bg-purple-400" style={{ boxShadow: '0 0 8px #8b5cf6' }} />
-        <div className="absolute top-2 right-2 w-0.5 h-8 bg-purple-400" style={{ boxShadow: '0 0 8px #8b5cf6' }} />
-      </div>
-      <div className="absolute bottom-0 left-0 w-20 h-20 pointer-events-none" style={{ zIndex: 2 }}>
-        <div className="absolute bottom-2 left-2 w-8 h-0.5 bg-green-400" style={{ boxShadow: '0 0 8px #00ff88' }} />
-        <div className="absolute bottom-2 left-2 w-0.5 h-8 bg-green-400" style={{ boxShadow: '0 0 8px #00ff88' }} />
-      </div>
-      <div className="absolute bottom-0 right-0 w-20 h-20 pointer-events-none" style={{ zIndex: 2 }}>
-        <div className="absolute bottom-2 right-2 w-8 h-0.5 bg-cyan-400" style={{ boxShadow: '0 0 8px #00ffff' }} />
-        <div className="absolute bottom-2 right-2 w-0.5 h-8 bg-cyan-400" style={{ boxShadow: '0 0 8px #00ffff' }} />
-      </div>
-
-      {/* Main Game UI */}
-      <div className="relative w-full h-full" style={{ zIndex: 10 }}>
-        {gameState === 'hub'          && <GameHub />}
-        {gameState === 'puzzle'       && <PuzzleArea />}
-        {gameState === 'leaderboard'  && <Leaderboard />}
-        {gameState === 'multiplayer'  && <MultiplayerRace />}
-      </div>
-
-      {/* Achievement notifications (above everything) */}
-      <div style={{ zIndex: 100 }}>
-        <AchievementToast />
-      </div>
+      <div className="iq-professor-line">{message}</div>
+      <BottomTabs />
+      <OnboardingFlow />
     </div>
   );
 }

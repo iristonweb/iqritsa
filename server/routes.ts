@@ -1,56 +1,33 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
-import { WebSocketServer, WebSocket } from "ws";
 import { storage } from "./storage";
-import { insertLeaderboardSchema, insertRaceResultSchema } from "@shared/schema";
+import {
+  insertLeaderboardSchema,
+  insertRaceResultSchema,
+  insertIqProfileSchema,
+  insertAntiCheatEventSchema,
+} from "@shared/schema";
 import { z } from "zod";
-
-// ── Active race rooms ──────────────────────────────────────────────────────
-interface RacePlayer {
-  ws: WebSocket;
-  name: string;
-  score: number;
-  solved: number;
-  ready: boolean;
-  finished: boolean;
-}
-
-interface RaceRoom {
-  id: string;
-  stage: number;
-  players: Map<string, RacePlayer>;
-  started: boolean;
-  startTime: number;
-  totalQuestions: number;
-}
-
-const rooms = new Map<string, RaceRoom>();
-
-function broadcast(room: RaceRoom, msg: object, excludeId?: string) {
-  const json = JSON.stringify(msg);
-  room.players.forEach((p, id) => {
-    if (id !== excludeId && p.ws.readyState === WebSocket.OPEN) {
-      p.ws.send(json);
-    }
-  });
-}
-
-function roomState(room: RaceRoom) {
-  const players = Array.from(room.players.entries()).map(([id, p]) => ({
-    id, name: p.name, score: p.score, solved: p.solved, finished: p.finished, ready: p.ready,
-  }));
-  return { type: 'room_state', roomId: room.id, stage: room.stage, started: room.started, players };
-}
-
-function cleanupRoom(roomId: string) {
-  const room = rooms.get(roomId);
-  if (!room) return;
-  let open = 0;
-  room.players.forEach(p => { if (p.ws.readyState === WebSocket.OPEN) open++; });
-  if (open === 0) rooms.delete(roomId);
-}
+import { requireAuth } from "./auth";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  const joinQueueSchema = z.object({
+    playerName: z.string().min(1).max(40),
+    mmr: z.number().int().min(0).max(5000).default(1000),
+  });
+
+  const answerSchema = z.object({
+    roundId: z.string().min(1),
+    answer: z.string().min(1).max(200),
+    timeMs: z.number().int().min(0).max(120000),
+  });
+
+  const sanitizeMatch = (match: any) => ({
+    ...match,
+    rounds: Array.isArray(match?.rounds)
+      ? match.rounds.map((r: any) => ({ id: r.id, question: r.question }))
+      : [],
+  });
 
   // ── Leaderboard ─────────────────────────────────────────────────────────
   app.get('/api/leaderboard', async (req, res) => {
@@ -63,9 +40,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/leaderboard', async (req, res) => {
+  app.post('/api/leaderboard', requireAuth, async (req, res) => {
     try {
-      const data = insertLeaderboardSchema.parse(req.body);
+      const auth = (req as typeof req & { auth?: { userId: string } }).auth;
+      const data = insertLeaderboardSchema.parse({
+        ...req.body,
+        userId: auth?.userId,
+      });
       const entry = await storage.upsertLeaderboardEntry(data);
       res.json(entry);
     } catch (err) {
@@ -94,137 +75,150 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // ── HTTP server + WebSocket ──────────────────────────────────────────────
-  const httpServer = createServer(app);
-
-  const wss = new WebSocketServer({ server: httpServer, path: '/ws' });
-
-  wss.on('connection', (ws) => {
-    let currentRoomId: string | null = null;
-    let playerId: string | null = null;
-
-    ws.on('message', async (raw) => {
-      let msg: any;
-      try { msg = JSON.parse(raw.toString()); } catch { return; }
-
-      switch (msg.type) {
-
-        case 'join_room': {
-          const roomId   = String(msg.roomId || 'global');
-          const pName    = String(msg.playerName || 'Аноним').slice(0, 20);
-          const stage    = Number(msg.stage ?? 0);
-          playerId       = `${pName}_${Date.now()}`;
-          currentRoomId  = roomId;
-
-          if (!rooms.has(roomId)) {
-            rooms.set(roomId, {
-              id: roomId, stage,
-              players: new Map(),
-              started: false, startTime: 0, totalQuestions: 10
-            });
-          }
-          const room = rooms.get(roomId)!;
-          room.players.set(playerId, { ws, name: pName, score: 0, solved: 0, ready: false, finished: false });
-
-          ws.send(JSON.stringify({ type: 'joined', playerId, roomId }));
-          broadcast(room, { type: 'player_joined', name: pName, playerId });
-          broadcast(room, roomState(room));
-          break;
-        }
-
-        case 'ready': {
-          if (!currentRoomId || !playerId) break;
-          const room = rooms.get(currentRoomId);
-          if (!room) break;
-          const p = room.players.get(playerId);
-          if (!p) break;
-          p.ready = true;
-
-          broadcast(room, { type: 'player_ready', playerId, name: p.name });
-
-          // Auto-start when all players ready (≥2) or after 30s with at least 1
-          const all  = Array.from(room.players.values());
-          const readyCount = all.filter(x => x.ready).length;
-          if (!room.started && readyCount >= 1 && readyCount === all.length) {
-            room.started   = true;
-            room.startTime = Date.now();
-            broadcast(room, { type: 'race_start', stage: room.stage, totalQuestions: room.totalQuestions });
-          }
-          break;
-        }
-
-        case 'answer': {
-          if (!currentRoomId || !playerId) break;
-          const room = rooms.get(currentRoomId);
-          if (!room || !room.started) break;
-          const p = room.players.get(playerId);
-          if (!p || p.finished) break;
-
-          const correct = Boolean(msg.correct);
-          if (correct) {
-            p.score  += Number(msg.points ?? 100);
-            p.solved += 1;
-          }
-          broadcast(room, { type: 'score_update', playerId, name: p.name, score: p.score, solved: p.solved });
-          break;
-        }
-
-        case 'finish': {
-          if (!currentRoomId || !playerId) break;
-          const room = rooms.get(currentRoomId);
-          if (!room) break;
-          const p = room.players.get(playerId);
-          if (!p) break;
-          p.finished = true;
-
-          const elapsed = Date.now() - room.startTime;
-          await storage.saveRaceResult({
-            raceId: currentRoomId,
-            playerName: p.name,
-            score: p.score,
-            solved: p.solved,
-            totalQuestions: room.totalQuestions,
-            timeMs: elapsed,
-            stage: room.stage,
-          });
-
-          broadcast(room, { type: 'player_finished', playerId, name: p.name, score: p.score, solved: p.solved });
-
-          // All finished?
-          const all = Array.from(room.players.values());
-          if (all.every(x => x.finished)) {
-            const results = all.map(x => ({ name: x.name, score: x.score, solved: x.solved }))
-              .sort((a, b) => b.score - a.score);
-            broadcast(room, { type: 'race_over', results });
-          }
-          break;
-        }
-
-        case 'chat': {
-          if (!currentRoomId || !playerId) break;
-          const room = rooms.get(currentRoomId);
-          if (!room) break;
-          const p = room.players.get(playerId);
-          if (!p) break;
-          const text = String(msg.text || '').slice(0, 120);
-          broadcast(room, { type: 'chat', from: p.name, text }, playerId);
-          break;
-        }
-      }
-    });
-
-    ws.on('close', () => {
-      if (currentRoomId && playerId) {
-        const room = rooms.get(currentRoomId);
-        if (room) {
-          const p = room.players.get(playerId);
-          if (p) broadcast(room, { type: 'player_left', playerId, name: p.name });
-          room.players.delete(playerId);
-        }
-        cleanupRoom(currentRoomId);
-      }
-    });
+  app.post("/api/race/result", requireAuth, async (req, res) => {
+    try {
+      const auth = (req as typeof req & { auth?: { userId: string } }).auth;
+      const data = insertRaceResultSchema.parse({
+        ...req.body,
+        userId: auth?.userId,
+      });
+      const saved = await storage.saveRaceResult(data);
+      res.json(saved);
+    } catch (err) {
+      if (err instanceof z.ZodError) return res.status(400).json({ error: err.errors });
+      res.status(500).json({ error: "Failed to save race result" });
+    }
   });
 
-  return httpServer;
+  // ── IQ Profile cloud sync ────────────────────────────────────────────────
+  app.get("/api/iq/profile", requireAuth, async (req, res) => {
+    try {
+      const auth = (req as typeof req & { auth?: { userId: string } }).auth;
+      const profile = await storage.getIqProfile(auth!.userId);
+      res.json(profile ?? null);
+    } catch {
+      res.status(500).json({ error: "Failed to load profile" });
+    }
+  });
+
+  app.put("/api/iq/profile", requireAuth, async (req, res) => {
+    try {
+      const auth = (req as typeof req & { auth?: { userId: string } }).auth;
+      const data = insertIqProfileSchema.parse({
+        ...req.body,
+        userId: auth?.userId,
+      });
+      const profile = await storage.upsertIqProfile(data);
+      res.json(profile);
+    } catch (err) {
+      if (err instanceof z.ZodError) return res.status(400).json({ error: err.errors });
+      res.status(500).json({ error: "Failed to save profile" });
+    }
+  });
+
+  app.get("/api/iq/social-shelf", async (req, res) => {
+    try {
+      const limit = Math.min(Number(req.query.limit) || 20, 100);
+      const shelf = await storage.getSocialShelf(limit);
+      res.json(shelf);
+    } catch {
+      res.status(500).json({ error: "Failed to fetch social shelf" });
+    }
+  });
+
+  // ── Anti-cheat telemetry ─────────────────────────────────────────────────
+  app.post("/api/iq/anticheat-event", requireAuth, async (req, res) => {
+    try {
+      const auth = (req as typeof req & { auth?: { userId: string } }).auth;
+      const data = insertAntiCheatEventSchema.parse({
+        ...req.body,
+        userId: auth?.userId,
+      });
+      const saved = await storage.saveAntiCheatEvent(data);
+      res.json(saved);
+    } catch (err) {
+      if (err instanceof z.ZodError) return res.status(400).json({ error: err.errors });
+      res.status(500).json({ error: "Failed to save anti-cheat event" });
+    }
+  });
+
+  // ── Authoritative PvP queue and match ────────────────────────────────────
+  app.post("/api/iq/pvp/queue/join", requireAuth, async (req, res) => {
+    try {
+      const auth = (req as typeof req & { auth?: { userId: string } }).auth;
+      const body = joinQueueSchema.parse(req.body);
+      const result = await storage.joinPvpQueue({
+        userId: auth!.userId,
+        playerName: body.playerName,
+        mmr: body.mmr,
+        joinedAt: Date.now(),
+      });
+      res.json({ ...result, match: result.match ? sanitizeMatch(result.match) : null });
+    } catch (err) {
+      if (err instanceof z.ZodError) return res.status(400).json({ error: err.errors });
+      res.status(500).json({ error: "Failed to join queue" });
+    }
+  });
+
+  app.post("/api/iq/pvp/queue/leave", requireAuth, async (req, res) => {
+    try {
+      const auth = (req as typeof req & { auth?: { userId: string } }).auth;
+      await storage.leavePvpQueue(auth!.userId);
+      res.json({ ok: true });
+    } catch {
+      res.status(500).json({ error: "Failed to leave queue" });
+    }
+  });
+
+  app.get("/api/iq/pvp/match/:matchId", requireAuth, async (req, res) => {
+    try {
+      const match = await storage.getPvpMatch(req.params.matchId);
+      if (!match) return res.status(404).json({ error: "Match not found" });
+      res.json(sanitizeMatch(match));
+    } catch {
+      res.status(500).json({ error: "Failed to fetch match" });
+    }
+  });
+
+  app.post("/api/iq/pvp/match/:matchId/answer", requireAuth, async (req, res) => {
+    try {
+      const auth = (req as typeof req & { auth?: { userId: string } }).auth;
+      const body = answerSchema.parse(req.body);
+      const match = await storage.submitPvpAnswer({
+        matchId: req.params.matchId,
+        userId: auth!.userId,
+        roundId: body.roundId,
+        answer: body.answer,
+        timeMs: body.timeMs,
+      });
+      if (!match) return res.status(404).json({ error: "Match not found" });
+      res.json(sanitizeMatch(match));
+    } catch (err) {
+      if (err instanceof z.ZodError) return res.status(400).json({ error: err.errors });
+      res.status(500).json({ error: "Failed to submit answer" });
+    }
+  });
+
+  app.post("/api/iq/pvp/match/:matchId/finish", requireAuth, async (req, res) => {
+    try {
+      const match = await storage.finishPvpMatch(req.params.matchId);
+      if (!match) return res.status(404).json({ error: "Match not found" });
+      res.json(sanitizeMatch(match));
+    } catch {
+      res.status(500).json({ error: "Failed to finish match" });
+    }
+  });
+
+  app.get("/api/iq/pvp/history", requireAuth, async (req, res) => {
+    try {
+      const auth = (req as typeof req & { auth?: { userId: string } }).auth;
+      const limit = Math.min(Number(req.query.limit) || 20, 100);
+      const history = await storage.getPvpHistory(auth!.userId, limit);
+      res.json(history);
+    } catch {
+      res.status(500).json({ error: "Failed to fetch PvP history" });
+    }
+  });
+
+  return createServer(app);
 }
