@@ -1,6 +1,6 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
-import { storage } from "./storage";
+import { storage, storageMode } from "./storage";
 import {
   insertLeaderboardSchema,
   insertRaceResultSchema,
@@ -11,6 +11,15 @@ import { z } from "zod";
 import { requireAuth } from "./auth";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  app.get("/api/health", (_req, res) => {
+    res.json({
+      ok: true,
+      storage: storageMode,
+      env: process.env.NODE_ENV || "development",
+      uptimeSec: Math.round(process.uptime()),
+    });
+  });
+
   const joinQueueSchema = z.object({
     playerName: z.string().min(1).max(40),
     mmr: z.number().int().min(0).max(5000).default(1000),
@@ -36,6 +45,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const entries = await storage.getLeaderboard(limit);
       res.json(entries);
     } catch (err) {
+      console.error('[leaderboard] failed:', err);
       res.status(500).json({ error: 'Failed to fetch leaderboard' });
     }
   });

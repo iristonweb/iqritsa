@@ -18,8 +18,8 @@ import {
   type PvpMatchRow,
   type InsertPvpMatch,
 } from "@shared/schema";
-import { drizzle } from "drizzle-orm/neon-http";
-import { neon } from "@neondatabase/serverless";
+import { drizzle } from "drizzle-orm/postgres-js";
+import postgres from "postgres";
 import { desc, eq, or } from "drizzle-orm";
 
 export interface PvpQueueEntry {
@@ -107,7 +107,10 @@ class PgStorage implements IStorage {
   private pvpMatches: Map<string, PvpMatch> = new Map();
 
   constructor(databaseUrl: string) {
-    this.db = drizzle(neon(databaseUrl));
+    // Supabase transaction pooler (port 6543) does not support prepared
+    // statements, so disable them. SSL flag is taken from the connection URL.
+    const client = postgres(databaseUrl, { prepare: false });
+    this.db = drizzle(client);
   }
 
   async getUser(id: number): Promise<User | undefined> {
@@ -656,6 +659,11 @@ export class MemStorage implements IStorage {
   }
 }
 
-export const storage: IStorage = process.env.DATABASE_URL
-  ? new PgStorage(process.env.DATABASE_URL)
+const forceMemoryStorage = String(process.env.USE_IN_MEMORY_STORAGE || "").toLowerCase() === "true";
+const hasDatabaseUrl = Boolean(process.env.DATABASE_URL);
+
+export const storageMode: "postgres" | "memory" = hasDatabaseUrl && !forceMemoryStorage ? "postgres" : "memory";
+
+export const storage: IStorage = storageMode === "postgres"
+  ? new PgStorage(process.env.DATABASE_URL!)
   : new MemStorage();
