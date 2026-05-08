@@ -13,3 +13,5 @@ vite.config.ts.*
 attached_assets/
 IQritsa/
 .cursor/
+.vercel
+.env*.local
