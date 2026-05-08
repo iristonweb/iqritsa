@@ -23,6 +23,10 @@ For same-origin API, set:
 
 - `VITE_API_BASE_URL` = empty string
 
+Also verify in Project -> Settings -> General:
+
+- `Root Directory` must be repository root (`.`), not `client`.
+
 ## Deploy flow
 
 1. Push changes to `main`.
