@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1536 1024" role="img" aria-labelledby="title desc">
+  <title id="title">Laboratory comic stage frame</title>
+  <desc id="desc">Comic styled functional backdrop for laboratory screen.</desc>
+  <defs>
+    <linearGradient id="topShade" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#110804" stop-opacity="0.72" />
+      <stop offset="56%" stop-color="#000000" stop-opacity="0.08" />
+      <stop offset="100%" stop-color="#050302" stop-opacity="0.78" />
+    </linearGradient>
+    <radialGradient id="focusGlow" cx="52%" cy="40%" r="46%">
+      <stop offset="0%" stop-color="#6cb8ff" stop-opacity="0.2" />
+      <stop offset="100%" stop-color="#6cb8ff" stop-opacity="0" />
+    </radialGradient>
+  </defs>
+  <image href="/comics/stages/laboratory/frame-1.png" x="0" y="0" width="1536" height="1024" preserveAspectRatio="xMidYMid slice" />
+  <rect x="0" y="0" width="1536" height="1024" fill="url(#topShade)" />
+  <rect x="0" y="0" width="1536" height="1024" fill="url(#focusGlow)" />
+  <rect x="28" y="24" width="1480" height="976" rx="36" fill="none" stroke="#a9752f" stroke-width="14" />
+  <rect x="46" y="42" width="1444" height="940" rx="30" fill="none" stroke="#2f1b0c" stroke-width="8" opacity="0.8" />
+</svg>

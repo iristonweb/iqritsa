@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="2048" height="2048" viewBox="0 0 2048 2048" role="img" aria-label="IQritsa splash source">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#050510" />
+      <stop offset="100%" stop-color="#141a2d" />
+    </linearGradient>
+    <linearGradient id="brain" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ffc6d3" />
+      <stop offset="100%" stop-color="#e98698" />
+    </linearGradient>
+  </defs>
+  <rect width="2048" height="2048" fill="url(#bg)" />
+  <g transform="translate(515 480)">
+    <ellipse cx="510" cy="640" rx="230" ry="188" fill="#f6f2e7" stroke="#d8d0c1" stroke-width="18" />
+    <circle cx="510" cy="416" r="164" fill="#fbf8ee" stroke="#d8d0c1" stroke-width="18" />
+    <ellipse cx="436" cy="412" rx="46" ry="52" fill="#fff" />
+    <ellipse cx="584" cy="412" rx="46" ry="52" fill="#fff" />
+    <circle cx="444" cy="424" r="13" fill="#161616" />
+    <circle cx="576" cy="424" r="13" fill="#161616" />
+    <path d="M510 480 L586 512 L510 550 L434 512 Z" fill="#f7a400" stroke="#b96f00" stroke-width="8" />
+    <ellipse cx="510" cy="266" rx="176" ry="108" fill="url(#brain)" stroke="#d57184" stroke-width="14" />
+  </g>
+  <text x="1024" y="1710" fill="#00f2ff" font-family="Inter, Arial, sans-serif" font-size="164" font-weight="800" text-anchor="middle" letter-spacing="14">IQRITSA</text>
+  <text x="1024" y="1810" fill="#9ad7ff" font-family="Inter, Arial, sans-serif" font-size="54" font-weight="600" text-anchor="middle" letter-spacing="4">EVOLVE THE BRAINY CHICKEN</text>
+</svg>

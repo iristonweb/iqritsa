@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1536 1024">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#1b1008"/>
+      <stop offset="100%" stop-color="#080503"/>
+    </linearGradient>
+    <radialGradient id="focus" cx="50%" cy="42%" r="48%">
+      <stop offset="0%" stop-color="#dbc58f" stop-opacity="0.36"/>
+      <stop offset="100%" stop-color="#dbc58f" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect x="0" y="0" width="1536" height="1024" fill="url(#bg)"/>
+  <rect x="0" y="0" width="1536" height="1024" fill="url(#focus)"/>
+  <rect x="40" y="38" width="1456" height="948" rx="34" fill="none" stroke="#9f6b2b" stroke-width="14"/>
+  <rect x="64" y="62" width="1408" height="900" rx="28" fill="none" stroke="#332014" stroke-width="8"/>
+  <text x="96" y="136" fill="#ffd777" font-size="46" font-family="Inter, Arial, sans-serif" font-weight="700">settings scenario</text>
+  <text x="96" y="184" fill="#f0d4a3" font-size="26" font-family="Inter, Arial, sans-serif">default state</text>
+</svg>
